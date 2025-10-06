@@ -251,7 +251,7 @@ El marco de referencia de la herramienta se modifica de tal forma que el eje z c
 
 ## Código en RAPID
 
-El código realizado en Robot Studio para el desarrollo de la actividad se puede encontrar dentro de la carpeta llamada *"Codigo"*.
+El código realizado en Robot Studio para el desarrollo de la actividad se puede encontrar dentro del archivo llamado *"Codigo Rapid"*.
 
 ## Video explicativo
 
