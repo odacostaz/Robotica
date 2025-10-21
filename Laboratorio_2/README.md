@@ -1,5 +1,5 @@
 # Laboratorio 2
-1)cuadro comparativo
+1)cuadro comparativo especificaciones técnicas del Motoman MH6 y el IRB140
 
 | Ítem                                      | **Motoman MH6 (DX100/DX200)**                                                | **ABB IRB 140 (IRC5)**                                                                                                   |
 | ----------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -19,3 +19,6 @@
 | **Aplicaciones típicas**                  | Manipulación, tending, empaque, dosificado, soldadura, etc.                  | Manipulación/ensamble; variantes para fundición y sala limpia; versión 140T para más velocidad. ([library.e.abb.com][1]) |
 
 [1]: https://library.e.abb.com/public/a7121292272d40a9992a50745fdaa3b2/3HAC041346%20PS%20IRB%20140-en.pdf "Product specification - IRB 140"
+
+
+2) Diferencias entre el home1 y el home2 del Motoman MH6: 
