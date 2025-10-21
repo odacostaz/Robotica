@@ -21,4 +21,6 @@
 [1]: https://library.e.abb.com/public/a7121292272d40a9992a50745fdaa3b2/3HAC041346%20PS%20IRB%20140-en.pdf "Product specification - IRB 140"
 
 
-2) Diferencias entre el home1 y el home2 del Motoman MH6: 
+2) Diferencias entre el home1 y el home2 del Motoman MH6:
+![her1](Imagenes/HOME_1.jpg)
+![her2](Imagenes/HOME_1_1.jpg) 
