@@ -22,5 +22,29 @@
 
 
 2) Diferencias entre el home1 y el home2 del Motoman MH6:
+   Es una postura mecánicamente estable pensada para cuando el robot está inactivo. Minimiza el par requerido en las articulaciones (cercano a cero), por lo que en el teach pendant se observa corriente prácticamente nula en los ejes. Esto reduce desgaste de frenos y motores y disminuye el consumo energético durante los periodos de espera o apagado seguro.
 ![her1](Imagenes/HOME_1.jpg)
-![her2](Imagenes/HOME_1_1.jpg) 
+![her2](Imagenes/HOME_2_2.jpg)
+
+Es una postura de trabajo previa al ciclo. Evita singularidades y límites articulares y deja el TCP bien orientado y elevado sobre el área de operación, mejorando la alcanzabilidad de los distintos objetivos con trayectorias más cortas y seguras. En esta posición las articulaciones sí aplican par para mantenerse, por lo que el teach pendant muestra corriente en los ejes.
+
+![her1](Imagenes/HOME_2.jpg)
+![her2](Imagenes/HOME_1_1.jpg)
+
+3) Procedimiento para realizar el movimiento manual del manipulador Motoman por articulaciones, cambiar a movimientos cartesianos y realizar movimientos de traslación y rotación en los ejes X, Y, Z.
+
+Iniciamos  poniendo la llave de modos de funcionamiento en TEACH y ver que el E-Stop esté liberado y el área despejada.
+
+Procedemos a encender servos. para eso pulsamos SERVO ON READY hasta que aparezca “Servo ON”.
+
+Luego elegimos cómo mover. Presiona COORD para alternar entre JOINT (articular) o BASE/ROBOT, TOOL o USER (cartesiano) — se ve en la barra del display.
+
+luego ejecutamos el jog. para eso mantenemos presionado el boton de hombre muerto (enabling switch) y SHIFT/INTERLOCK; luego usa las teclas:
+
+    X±, Y±, Z± = traslaciones; Rx±, Ry±, Rz± = rotaciones (en cartesiano).
+
+    En JOINT, esas mismas teclas actúan sobre J1–J6 (S,L,U,R,B,T).
+
+Ajustar velocidad. Cambia con FAST/SLOW (empieza lento).
+
+Para detener con seguridad. Se duelta el boton de hombre muerto o se pulsa la parada de emergencia; el robot se detiene de inmediato.
