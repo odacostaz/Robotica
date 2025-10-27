@@ -140,8 +140,6 @@ RoboDK es un software de simulación y programación offline. Permite construir 
 - **Fidelidad de ejecución:** la precisión del robot simulado no siempre es igual al comportamiento real, ya que depende del post-procesador y no existe un “firmware virtual” que imite el controlador.
 - **Herramientas de proceso:** tiene menos herramientas avanzadas en comparación con los PowerPacs de ABB (por ejemplo, para soldadura, seguimiento de curvas, visión, etc.).
 
----
-
 ### RobotStudio — Ventajas
 
 - **Controlador Virtual:** ejecuta el mismo código RAPID que corre en el robot real, con cinemática y tiempos precisos. Tiene alta fidelidad entre simulación y ejecución real.
@@ -154,3 +152,22 @@ RoboDK es un software de simulación y programación offline. Permite construir 
 - **Curva de aprendizaje:** para aprovecharlo bien hay que dominar RAPID y entender la lógica del entorno ABB, lo que toma más tiempo.
 
 ## Diagrama de flujo
+
+## 7) Diagrama de flujo del proceso
+
+El siguiente diagrama resume la secuencia general seguida en RoboDK para la generación, simulación y ejecución del programa sobre el Motoman MH6.  
+Incluye las etapas desde la definición del entorno hasta la ejecución final en el controlador.
+
+```mermaid
+flowchart TD
+    A[Inicio] --> B[Abrir RoboDK]
+    B --> C[Importar modelo del robot MH6]
+    C --> D[Definir herramienta y Frame_from_Target1]
+    D --> E[Configurar velocidades, blending y límites]
+    E --> F[Diseñar trayectoria, espiral y letras con API Python]
+    F --> G[Simular movimiento y verificar colisiones]
+    G --> H[Post-procesar a código INFORM (.JBI)]
+    H --> I[Transferir programa al DX100/DX200]
+    I --> J[Ejecutar desde Teach Pendant]
+    J --> K[Fin del proceso]
+
