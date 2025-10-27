@@ -112,45 +112,7 @@ RoboDK es un software de simulación y programación offline. Permite construir 
 5. El controlador ejecuta la trayectoria con sus propios parámetros de seguridad, tiempos de interpolación y control interno.
 
 
-
-Qué es.
-RoboDK es una plataforma de simulación y programación offline. Permite construir la celda, definir herramientas (TCP), crear trayectorias y generar programas nativos. También ofrece API en Python para automatizar procesos y trayectorias paramétricas.
-
-Funcionalidades clave.
-
-Modelado de celda (importación CAD), definición de frames.
-
-Herramientas/TCP: creación y calibración.
-
-Programación gráfica: targets, MoveJ/MoveL, velocidades, aceleraciones, blending.
-
-Verificación: colisiones, límites, singularidades, estimación de tiempo de ciclo.
-
-Post-proceso: generación de código INFORM (Yaskawa) u otros.
-
-API Python: curvas (espiral, rosa), control de I/O, parametrización.
-
-Módulos de proceso: corte, pulido, mecanizado, seguimiento de curvas, visión.
-
-Cómo se comunica con el MH6.
-
-Offline (recomendado para entrega): simular → verificar → post-procesar → obtener .JBI → transferir al DX100/DX200 (USB/FTP) → ejecutar desde pendant.
-
-Online (directo desde la PC): conexión por red (driver), envío de comandos MoveJ/MoveL en tiempo real. Requiere modo remoto y servos ON.
-
-Qué ocurre al mover.
-
-Secuencia (targets + MoveJ/MoveL + velocidades + blending).
-
-Cinemática inversa → juntas J1–J6 válidas (evita límites/singularidades).
-
-Planificación → aplica blending, perfiles de velocidad/aceleración y verifica colisiones.
-
-Traducción → INFORM .JBI (offline) o comandos por red (online).
-
-Ejecución en el DX100/DX200 con perfiles internos y seguridades.
-
-6) Análisis comparativo: RoboDK vs RobotStudio:
+## Análisis comparativo entre RoboDK vs RobotStudio:
 
 | Criterio                     | **RoboDK**                                                                                               | **RobotStudio (ABB)**                                                                                       |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -165,33 +127,30 @@ Ejecución en el DX100/DX200 con perfiles internos y seguridades.
 | **Curva de aprendizaje**     | Baja–media (especialmente con la API Python)                                                             | Media–alta si se explota RAPID y los PowerPacs                                                              |
 | **Casos de uso típicos**     | Laboratorios académicos multimarca, células mixtas, generación rápida de programas para distintos robots | Producción y *commissioning* **ABB**, validación fiel de lógicas RAPID/I/O, depuración previa a planta      |
 
-RoboDK — Ventajas
 
-Multimarca: una misma estación sirve para distintos fabricantes.
+### RoboDK — Ventajas
 
-API Python: rápido para generar trayectorias paramétricas (espirales, rosas polares, patrones) y automatizar flujos.
+- **Multimarca:** permite trabajar con robots de diferentes fabricantes desde la misma estación.
+- **API Python:** ideal para generar trayectorias paramétricas como espirales, rosas polares o nombres personalizados. También útil para automatizar tareas y flujos.
+- **Post-procesadores:** genera código nativo para muchos controladores (ABB, Yaskawa, KUKA, etc.), útil en entornos mixtos.
+- **Sencillez:** tiene una curva de aprendizaje baja. Es fácil de modelar, simular y programar con interfaz gráfica. Funciona muy bien para docencia, pruebas y prototipos rápidos.
 
-Post-procesadores: exportas código nativo para muchos controladores (útil en entornos mixtos).
+### RoboDK — Limitaciones
 
-Sencillez: modelado y programación visual directos; buena para docencia e I+D.
+- **Fidelidad de ejecución:** la precisión del robot simulado no siempre es igual al comportamiento real, ya que depende del post-procesador y no existe un “firmware virtual” que imite el controlador.
+- **Herramientas de proceso:** tiene menos herramientas avanzadas en comparación con los PowerPacs de ABB (por ejemplo, para soldadura, seguimiento de curvas, visión, etc.).
 
-RoboDK — Limitaciones
+---
 
-La fidelidad de ejecución depende del post y de los parámetros del robot real (no hay “firmware virtual” del fabricante).
+### RobotStudio — Ventajas
 
-Menos herramientas específicas de proceso que los PowerPacs nativos de ABB para ciertas aplicaciones.
+- **Controlador Virtual:** ejecuta el mismo código RAPID que corre en el robot real, con cinemática y tiempos precisos. Tiene alta fidelidad entre simulación y ejecución real.
+- **Integración con ecosistema ABB:** permite usar PowerPacs, Smart Components, I/O virtual, generación de trayectorias complejas, PickMaster y otras herramientas específicas de ABB.
+- **Absolute Accuracy:** permite trabajar con utilidades de calibración y simulación con alta precisión, útil para celdas reales exigentes.
 
-RobotStudio — Ventajas
+### RobotStudio — Limitaciones
 
-Controlador Virtual: ejecuta RAPID real con cinemática, aceleraciones y límites del robot ABB → fidelidad alta.
+- **Monomarca:** solo funciona con robots ABB. No sirve si se trabaja con Yaskawa, KUKA, Fanuc, etc.
+- **Curva de aprendizaje:** para aprovecharlo bien hay que dominar RAPID y entender la lógica del entorno ABB, lo que toma más tiempo.
 
-Ecosistema ABB: PowerPacs, Smart Components, I/O virtual, paths avanzados, PickMaster, etc.
-
-Soporte a Absolute Accuracy y utilidades de ajuste/cálculo de tiempos muy cercanas a la celda real.
-
-RobotStudio — Limitaciones
-
-Monomarca (ABB): no sirve para programar robots de otros fabricantes.
-
-Requiere manejar RAPID y la lógica ABB para sacarle todo el jugo (curva de aprendizaje mayor).
-
+## Diagrama de flujo
