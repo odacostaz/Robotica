@@ -172,6 +172,29 @@ J --> K[Fin del proceso]
 ```
 ## Plano de planta
 
+Respecto al espacio de trabajo configurado en RoboDK, se adjunta la vista de planta donde se visualiza el robot **Motoman MH6**, la base de referencia y la herramienta (**Ventosas**), junto con la pieza de trabajo sobre la cual se trazó la espiral y los nombres.  
+La disposición garantiza un área libre de colisiones y un acceso directo del TCP a la superficie, manteniendo la orientación correcta de los ejes X, Y y Z del frame de escritura (`Frame_from_Target1`).
+
+En esta configuración, el texto se ubica en la esquina inferior izquierda del bloque, con la dirección de escritura **de izquierda a derecha**, coherente con el plano XY del frame local.  
+La trayectoria de los nombres (“ESTEBAN” y “DAVID”) se diseñó sobre este mismo plano, lo que asegura continuidad y evita conflictos de orientación entre letras.  
+Durante las pruebas se comprobó que la referencia del frame y la orientación del TCP permitían mantener la normal del plano perpendicular a la superficie, evitando colisiones y garantizando un trazo fluido.
+
+### Justificación de la ubicación de los nombres
+- La guía del laboratorio pide “**bajo** la trayectoria polar”. En nuestra estación, *bajo* se interpreta como **la zona más cercana al observador** en la vista de trabajo, que coincide con la dirección **−Y del frame local**.  
+- Mantener los nombres en esa franja evita tocar la espiral (que ya funcionaba) y **no exige reubicar ni reorientar el frame**, lo que antes generó errores de alcance (`TargetReachError`) y comportamientos inestables.
+- Al permanecer **en el mismo frame** y **dentro del área de alcanzabilidad** del MH6, se preserva la orientación del TCP (normal al plano), el blending y la continuidad de los `MoveL`, sin colisiones.
+- La escritura se mantiene **de izquierda a derecha (eje +X del frame)**. Esta decisión resuelve el problema original de texto “vertical” sin afectar la trayectoria polar ni la simulación ya validada.
+
+> Resultado: los nombres (“ESTEBAN” y “DAVID”) se ubican **debajo** de la espiral en el sentido del frame (zona cercana al observador), legibles de **izquierda a derecha**, y sin re-trabajar la espiral ni el frame de referencia.
+
+
 <img width="622" height="662" alt="image" src="https://github.com/user-attachments/assets/f4b19ad0-e2f8-4c4e-bbfa-9d61a2071f7e" />
 
+## Código en PYTHON para RobotDK
+
+El código realizado en Robot Studio para el desarrollo de la actividad se puede encontrar dentro de la carpeta llamada *"Codigo"*.
+
+## Video explicativo
+
+Para un mayor detalle de la actividad realizada, se puede observar un video de la implementación tanto simulada como física de esta [aquí](https://youtu.be/0JdNzMYcMH4?si=PPf1MCZRZ-cwHxok)
 
