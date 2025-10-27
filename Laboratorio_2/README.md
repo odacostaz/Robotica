@@ -153,8 +153,6 @@ RoboDK es un software de simulación y programación offline. Permite construir 
 
 ## Diagrama de flujo
 
-## 7) Diagrama de flujo del proceso
-
 El siguiente diagrama resume la secuencia general seguida en RoboDK para la generación, simulación y ejecución del programa sobre el Motoman MH6.  
 Incluye las etapas desde la definición del entorno hasta la ejecución final en el controlador.
 
@@ -171,4 +169,9 @@ G --> H["Post-procesar a código INFORM (.JBI) hacia archivo"]
 H --> I[Transferir programa al DX100 o DX200]
 I --> J[Ejecutar desde Teach Pendant]
 J --> K[Fin del proceso]
+```
+## Plano de planta
+
+<img width="622" height="662" alt="image" src="https://github.com/user-attachments/assets/f4b19ad0-e2f8-4c4e-bbfa-9d61a2071f7e" />
+
 
