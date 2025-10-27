@@ -62,12 +62,11 @@ Se explicará de forma sencilla el procedimiento de jog: articular ↔ cartesian
 * **Mover**; Mantén el hombre muerto en posición media y SHIFT/INTERLOCK; Usa las teclas: X±, Y±, Z± (traslación) y Rx±, Ry±, Rz± (rotación) en cartesiano; En JOINT, esas teclas actúan sobre J1–J6 (S, L, U, R, B, T).
 * **Velocidad / parada**; Ajusta con FAST/SLOW (empieza lento); Para detener: suelta el hombre muerto o pulsa HOLD.
 
+# Niveles de velocidad en movimientos manuales
+Se dará una explicación completa sobre los niveles de velocidad para movimientos manuales, el proceso para cambiar entre
+niveles y cómo identificar el nivel establecido en la interfaz del robot. Por tanto el manipulador permite cuatro niveles de velocidad para movimientos manuales como se muestra en el siguiente cuadro:
 
-4) Explicación completa sobre los niveles de velocidad para movimientos manuales, el proceso para cambiar entre
-niveles y cómo identificar el nivel establecido en la interfaz del robo:
-
-El manipulador permite cuatro niveles de velocidad para movimientos manuales:
-| Nivel       | Uso típico                                  | Qué hace distinto                                                             |
+| Nivel       | Uso típico                                  | ¿Qué hace diferente?                                                             |
 | ----------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
 | **INCHING** | Ajustes finos cerca de blancos u obstáculos | Avances muy pequeños por pulsos; máxima precisión.                            |
 | **LOW**     | Enseñar puntos con seguridad                | Movimiento lento y controlado.                                                |
@@ -75,7 +74,44 @@ El manipulador permite cuatro niveles de velocidad para movimientos manuales:
 | **HIGH**    | Traslados largos y despejados               | Velocidad más alta permitida en TEACH (siempre con visibilidad y área libre). |
 
 
-5) RoboDK: funcionalidades, comunicación con Motoman y ejecución de movimientos
+
+## RoboDK: funcionalidades, comunicación con Motoman y ejecución de movimientos
+
+RoboDK es un software de simulación y programación offline. Permite construir la celda, definir herramientas (TCP), crear trayectorias y generar programas nativos para distintos robots. También cuenta con una API en Python que usamos para automatizar trayectorias como curvas paramétricas (espirales, texto, etc.).
+
+### Funcionalidades clave
+
+- Modelado de celda: importar modelos CAD, colocar equipos, definir referencias (frames).
+- TCP y herramientas: creación desde cero o calibración a partir de medidas reales.
+- Programación gráfica: creación de targets, MoveJ/MoveL, ajuste de velocidades, aceleraciones y blending.
+- Verificación: simulación con detección de colisiones, chequeo de límites articulares y singularidades. Estimación de tiempo de ciclo.
+- Post-proceso: exporta código INFORM (.JBI) para Yaskawa u otros formatos según marca.
+- API Python: acceso directo a funciones de movimiento, control de I/O, generación de curvas personalizadas y parametrización de trayectorias.
+- Módulos para tareas específicas: mecanizado, corte, pulido, visión artificial, etc.
+
+### Comunicación con el Motoman MH6
+
+**Modo offline (el que se usó):**
+1. Se diseña y simula la trayectoria en RoboDK.
+2. Se verifica la viabilidad: sin colisiones ni problemas cinemáticos.
+3. Se genera el archivo .JBI mediante post-procesamiento.
+4. El archivo se transfiere al controlador (DX100/DX200) por USB o red.
+5. Se ejecuta desde el teach pendant como cualquier otro programa.
+
+**Modo online (directo desde la PC):**
+- Se hace vía red con el robot en modo remoto.
+- RoboDK envía comandos en tiempo real (MoveJ, MoveL, etc.).
+- Requiere que los servos estén activos. No fue el modo utilizado en esta práctica.
+
+### ¿Qué ocurre durante la ejecución?
+
+1. El robot sigue una secuencia de targets con movimientos MoveJ/MoveL definidos por velocidad y blending.
+2. RoboDK calcula la cinemática inversa: valores válidos para las articulaciones J1–J6, evitando zonas no alcanzables o singularidades.
+3. Aplica el perfil de velocidad/aceleración y verifica que no haya colisiones.
+4. Genera el código INFORM .JBI (offline) o envía instrucciones en vivo (online).
+5. El controlador ejecuta la trayectoria con sus propios parámetros de seguridad, tiempos de interpolación y control interno.
+
+
 
 Qué es.
 RoboDK es una plataforma de simulación y programación offline. Permite construir la celda, definir herramientas (TCP), crear trayectorias y generar programas nativos. También ofrece API en Python para automatizar procesos y trayectorias paramétricas.
