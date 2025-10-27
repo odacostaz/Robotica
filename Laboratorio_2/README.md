@@ -158,17 +158,17 @@ RoboDK es un software de simulación y programación offline. Permite construir 
 El siguiente diagrama resume la secuencia general seguida en RoboDK para la generación, simulación y ejecución del programa sobre el Motoman MH6.  
 Incluye las etapas desde la definición del entorno hasta la ejecución final en el controlador.
 
-```markdown
+
 ```mermaid
 flowchart TD
-    A[Inicio] --> B[Abrir RoboDK]
-    B --> C[Importar modelo del robot MH6]
-    C --> D[Definir herramienta y Frame_from_Target1]
-    D --> E[Configurar velocidades y límites]
-    E --> F[Diseñar trayectorias con API Python]
-    F --> G[Simular movimiento y verificar colisiones]
-    G --> H[Post-procesar a archivo de programa]
-    H --> I[Transferir al controlador DX100/DX200]
-    I --> J[Ejecutar en Teach Pendant]
-    J --> K[Fin]
+A[Inicio] --> B[Abrir RoboDK]
+B --> C[Importar modelo del robot MH6]
+C --> D[Definir herramienta y Frame_from_Target1]
+D --> E[Configurar velocidades, blending y límites]
+E --> F[Diseñar trayectoria polar o espiral con API Python]
+F --> G[Simular movimiento y verificar colisiones]
+G --> H["Post-procesar a código INFORM (.JBI) hacia archivo"]
+H --> I[Transferir programa al DX100 o DX200]
+I --> J[Ejecutar desde Teach Pendant]
+J --> K[Fin del proceso]
 
