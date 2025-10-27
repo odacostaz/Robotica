@@ -29,16 +29,26 @@ Los manipuladores industriales son brazos robóticos articulados que permiten au
 [1]: https://library.e.abb.com/public/a7121292272d40a9992a50745fdaa3b2/3HAC041346%20PS%20IRB%20140-en.pdf "Product specification - IRB 140"
 
 
-2) Diferencias entre el home1 y el home2 del Motoman MH6:
-   Es una postura mecánicamente estable pensada para cuando el robot está inactivo. Minimiza el par requerido en las articulaciones (cercano a cero), por lo que en el teach pendant se observa corriente prácticamente nula en los ejes. Esto reduce desgaste de frenos y motores y disminuye el consumo energético durante los periodos de espera o apagado seguro.
+# Diferencias entre el Home 1 y el Home 2 del Motoman MH6:
+
+Durante el desarrollo del laboratorio, se evaluaron dos posturas HOME disponibles en el entorno de simulación: HOME 1 y HOME 2, cada una con características particulares en términos de estabilidad, consumo energético y funcionalidad operativa.
+
+El HOME 1 es una postura mecánicamente estable pensada para cuando el robot está inactivo. Minimiza el par requerido en las articulaciones, cercano a cero, por lo que en el teach pendant se observa corriente prácticamente nula en los ejes. Esto reduce desgaste de frenos y motores y disminuye el consumo energético durante los periodos de espera o apagado seguro.
 ![her1](Imagenes/HOME_1.jpg)
 ![her2](Imagenes/HOME_2_2.jpg)
 
-Es una postura de trabajo previa al ciclo. Evita singularidades y límites articulares y deja el TCP bien orientado y elevado sobre el área de operación, mejorando la alcanzabilidad de los distintos objetivos con trayectorias más cortas y seguras. En esta posición las articulaciones sí aplican par para mantenerse, por lo que el teach pendant muestra corriente en los ejes.
+El HOME 2 es una postura de trabajo previa al ciclo. Evita singularidades y límites articulares y deja el TCP bien orientado y elevado sobre el área de operación, mejorando la alcanzabilidad de los distintos objetivos con trayectorias más cortas y seguras. En esta posición las articulaciones sí aplican par para mantenerse, por lo que el teach pendant muestra corriente en los ejes.
 
 ![her1](Imagenes/HOME_2.jpg)
 ![her2](Imagenes/HOME_1_1.jpg)
 
+**Elección justificada**
+
+En el contexto del presente laboratorio, enfocado en la programación de trayectorias polares y la escritura de texto en un plano específico mediante RoboDK, la postura HOME 2 fue la más adecuada.
+
+Esto se debe a que permite iniciar los ciclos desde una posición elevada y bien orientada sobre el plano de trabajo, lo que facilita la generación de trayectorias como espirales y letras sin necesidad de hacer correcciones iniciales o mover manualmente el robot fuera de HOME 1. Mejora la alcanzabilidad y la seguridad cinemática de los movimientos, reduciendo el riesgo de errores como TargetReachError y evitando trayectorias innecesariamente largas o forzadas. Se adapta naturalmente al tipo de movimientos realizados en el ejercicio, en especial al uso de comandos MoveL para trazos lineales, los cuales requieren que el robot esté en una postura libre de restricciones articulares.
+
+Por tanto, aunque HOME 1 es óptima para estados de reposo y seguridad pasiva, se determinó que HOME 2 es la opción más funcional y segura para este tipo de programación de trayectorias activas en un entorno de simulación como RoboDK.
 3) Procedimiento de jog: articular ↔ cartesiano; traslación y rotación en X/Y/Z
 
 Preparar
