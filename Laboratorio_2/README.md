@@ -197,6 +197,6 @@ El código realizado en RoboDK para el desarrollo de la actividad se puede encon
 ## Videos explicativos
 
 Para un mayor detalle de la actividad realizada, se puede observar un video de la implementación de este laboratorio en los siguientes enlaces:
-Ejecución del archivo realizado en RoboDK en el Robot MH6: [aquí](https://youtu.be/zrzwGteLY6I?si=l5BrRWUka7MFLQh8)
-Simulación del código en RoboDK y explicación del código:  [aquí](https://youtu.be/D21bzQpL9eI)
+-Ejecución del archivo realizado en RoboDK en el Robot MH6: [aquí](https://youtu.be/zrzwGteLY6I?si=l5BrRWUka7MFLQh8)
+-Simulación del código en RoboDK y explicación del código:  [aquí](https://youtu.be/D21bzQpL9eI)
 
