@@ -196,5 +196,5 @@ El código realizado en Robot Studio para el desarrollo de la actividad se puede
 
 ## Video explicativo
 
-Para un mayor detalle de la actividad realizada, se puede observar un video de la implementación tanto simulada como física de esta [aquí](https://youtu.be/0JdNzMYcMH4?si=PPf1MCZRZ-cwHxok)
+Para un mayor detalle de la actividad realizada, se puede observar un video de la implementación tanto simulada como física de esta [aquí](https://youtu.be/zrzwGteLY6I?si=l5BrRWUka7MFLQh8)
 
