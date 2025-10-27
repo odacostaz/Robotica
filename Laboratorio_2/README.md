@@ -1,5 +1,13 @@
-# Laboratorio 2
-1)cuadro comparativo especificaciones técnicas del Motoman MH6 y el IRB140
+# Laboratorio No. 02
+# Robótica Industrial - Análisis y Operación del Manipulador Motoman MH6
+
+* Omar David Acosta Zambrano
+* Edgar Esteban Erazo Lagos
+
+# Introducción 
+Los manipuladores industriales son brazos robóticos articulados que permiten automatizar tareas repetitivas, de riesgo o que requieren alta precisión, siendo clave en procesos como manufactura, ensamblaje, soldadura o pintura. En esta práctica, el enfoque se centró en el diseño y ejecución de trayectorias polares utilizando el entorno de simulación RoboDK. El objetivo es establecer una base sólida, tanto teórica como práctica, para programar movimientos offline que puedan simularse y ejecutarse físicamente desde el PC. Esto permite comparar el rendimiento y facilidad de uso entre dos plataformas —RoboDK y RobotStudio— y entre dos manipuladores industriales distintos: el Yaskawa Motoman MH6 y el ABB IRB 140. Con ello se busca identificar fortalezas, diferencias clave y aplicaciones óptimas de cada herramienta dentro de un entorno de automatización realista.
+
+## Cuadro comparativo con especificaciones técnicas del Motoman MH6 y el IRB140
 
 | Ítem                                      | **Motoman MH6 (DX100/DX200)**                                                | **ABB IRB 140 (IRC5)**                                                                                                   |
 | ----------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
