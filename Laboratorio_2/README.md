@@ -57,13 +57,10 @@ Se explicará de forma sencilla el procedimiento de jog: articular ↔ cartesian
 
 * **Preparar**; Llave en TEACH. E-Stop liberado y zona despejada.
 * **Activar servos**; Pulsa SERVO ON READY hasta ver “Servo ON”..
-* **Elegir el modo**; Presiona COORD y selecciona:.
-* **JOINT (articular: J1–J6).** y **BASE/ROBOT, TOOL o USER (cartesiano: X, Y, Z, Rx, Ry, Rz).**; La selección aparece en la barra superior del display.
-* **Mover**; Mantén el hombre muerto en posición media y SHIFT/INTERLOCK.
-- Usa las teclas: X±, Y±, Z± (traslación) y Rx±, Ry±, Rz± (rotación) en cartesiano.
-- En JOINT, esas teclas actúan sobre J1–J6 (S, L, U, R, B, T).
-* **Velocidad / parada**; Ajusta con FAST/SLOW (empieza lento).
-- Para detener: suelta el hombre muerto o pulsa HOLD.
+* **Elegir el modo**; Presiona COORD y selecciona:
+* **JOINT (articular: J1–J6).** y **BASE/ROBOT, TOOL o USER (cartesiano: X, Y, Z, Rx, Ry, Rz)**; La selección aparece en la barra superior del display.
+* **Mover**; Mantén el hombre muerto en posición media y SHIFT/INTERLOCK; Usa las teclas: X±, Y±, Z± (traslación) y Rx±, Ry±, Rz± (rotación) en cartesiano; En JOINT, esas teclas actúan sobre J1–J6 (S, L, U, R, B, T).
+* **Velocidad / parada**; Ajusta con FAST/SLOW (empieza lento); Para detener: suelta el hombre muerto o pulsa HOLD.
 
 
 4) Explicación completa sobre los niveles de velocidad para movimientos manuales, el proceso para cambiar entre
