@@ -190,11 +190,11 @@ Durante las pruebas se comprobó que la referencia del frame y la orientación d
 
 <img width="622" height="662" alt="image" src="https://github.com/user-attachments/assets/f4b19ad0-e2f8-4c4e-bbfa-9d61a2071f7e" />
 
-## Código en PYTHON para RobotDK
+## Código en Python para RoboDK
 
-El código realizado en Robot Studio para el desarrollo de la actividad se puede encontrar dentro de la carpeta llamada *"Codigo"*.
+El código realizado en RoboDK para el desarrollo de la actividad se puede encontrar dentro de la carpeta llamada *"Codigo"*.
 
 ## Video explicativo
 
-Para un mayor detalle de la actividad realizada, se puede observar un video de la implementación tanto simulada como física de esta [aquí](https://youtu.be/zrzwGteLY6I?si=l5BrRWUka7MFLQh8)
+Para un mayor detalle de la actividad realizada, se puede observar un video de la implementación de este laboratorio en el siguiente enlace [aquí](https://youtu.be/zrzwGteLY6I?si=l5BrRWUka7MFLQh8)
 
