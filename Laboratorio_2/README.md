@@ -34,13 +34,14 @@ Los manipuladores industriales son brazos robóticos articulados que permiten au
 Durante el desarrollo del laboratorio, se evaluaron dos posturas HOME disponibles en el entorno de simulación: HOME 1 y HOME 2, cada una con características particulares en términos de estabilidad, consumo energético y funcionalidad operativa.
 
 El HOME 1 es una postura mecánicamente estable pensada para cuando el robot está inactivo. Minimiza el par requerido en las articulaciones, cercano a cero, por lo que en el teach pendant se observa corriente prácticamente nula en los ejes. Esto reduce desgaste de frenos y motores y disminuye el consumo energético durante los periodos de espera o apagado seguro.
+
 ![her1](Imagenes/HOME_1.jpg)
-![her2](Imagenes/HOME_2_2.jpg)
+![her2](Imagenes/HOME_1_1.jpg)
 
 El HOME 2 es una postura de trabajo previa al ciclo. Evita singularidades y límites articulares y deja el TCP bien orientado y elevado sobre el área de operación, mejorando la alcanzabilidad de los distintos objetivos con trayectorias más cortas y seguras. En esta posición las articulaciones sí aplican par para mantenerse, por lo que el teach pendant muestra corriente en los ejes.
 
 ![her1](Imagenes/HOME_2.jpg)
-![her2](Imagenes/HOME_1_1.jpg)
+![her2](Imagenes/HOME_2_2.jpg)
 
 **Elección justificada**
 
@@ -49,30 +50,20 @@ En el contexto del presente laboratorio, enfocado en la programación de trayect
 Esto se debe a que permite iniciar los ciclos desde una posición elevada y bien orientada sobre el plano de trabajo, lo que facilita la generación de trayectorias como espirales y letras sin necesidad de hacer correcciones iniciales o mover manualmente el robot fuera de HOME 1. Mejora la alcanzabilidad y la seguridad cinemática de los movimientos, reduciendo el riesgo de errores como TargetReachError y evitando trayectorias innecesariamente largas o forzadas. Se adapta naturalmente al tipo de movimientos realizados en el ejercicio, en especial al uso de comandos MoveL para trazos lineales, los cuales requieren que el robot esté en una postura libre de restricciones articulares.
 
 Por tanto, aunque HOME 1 es óptima para estados de reposo y seguridad pasiva, se determinó que HOME 2 es la opción más funcional y segura para este tipo de programación de trayectorias activas en un entorno de simulación como RoboDK.
-3) Procedimiento de jog: articular ↔ cartesiano; traslación y rotación en X/Y/Z
 
-Preparar
-Llave en TEACH. E-Stop liberado y zona despejada.
+# Procedimiento para movimientos manuales
 
-Activar servos
-Pulsa SERVO ON READY hasta ver “Servo ON”.
+Se explicará de forma sencilla el procedimiento de jog: articular ↔ cartesiano; traslación y rotación en X/Y/Z.
 
-Elegir el modo
-Presiona COORD y selecciona:
-
-JOINT (articular: J1–J6).
-
-BASE/ROBOT, TOOL o USER (cartesiano: X, Y, Z, Rx, Ry, Rz).
-La selección aparece en la barra superior del display.
-
-Mover
-Mantén el hombre muerto en posición media y SHIFT/INTERLOCK.
-Usa las teclas: X±, Y±, Z± (traslación) y Rx±, Ry±, Rz± (rotación) en cartesiano.
-En JOINT, esas teclas actúan sobre J1–J6 (S, L, U, R, B, T).
-
-Velocidad / parada
-Ajusta con FAST/SLOW (empieza lento).
-Para detener: suelta el hombre muerto o pulsa HOLD.
+* **Preparar**; Llave en TEACH. E-Stop liberado y zona despejada.
+* **Activar servos**; Pulsa SERVO ON READY hasta ver “Servo ON”..
+* **Elegir el modo**; Presiona COORD y selecciona:.
+* **JOINT (articular: J1–J6).** y **BASE/ROBOT, TOOL o USER (cartesiano: X, Y, Z, Rx, Ry, Rz).**; La selección aparece en la barra superior del display.
+* **Mover**; Mantén el hombre muerto en posición media y SHIFT/INTERLOCK.
+- Usa las teclas: X±, Y±, Z± (traslación) y Rx±, Ry±, Rz± (rotación) en cartesiano.
+- En JOINT, esas teclas actúan sobre J1–J6 (S, L, U, R, B, T).
+* **Velocidad / parada**; Ajusta con FAST/SLOW (empieza lento).
+- Para detener: suelta el hombre muerto o pulsa HOLD.
 
 
 4) Explicación completa sobre los niveles de velocidad para movimientos manuales, el proceso para cambiar entre
