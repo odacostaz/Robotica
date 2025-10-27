@@ -1,1 +1,226 @@
+from robodk.robolink import *    # API para comunicarte con RoboDK
+from robodk.robomath import *    # Funciones matemáticas
+import math
+
+#------------------------------------------------
+# 1) Conexión a RoboDK e inicialización
+#------------------------------------------------
+RDK = Robolink()
+
+# Elegir un robot (si hay varios, aparece un popup)
+robot = RDK.ItemUserPick("Selecciona un robot", ITEM_TYPE_ROBOT)
+#if not robot.Valid():
+ #   raise Exception("No se ha seleccionado un robot válido.")
+
+# Conectar al robot físico
+#if not robot.Connect():
+ #   raise Exception("No se pudo conectar al robot. Verifica que esté en modo remoto y que la configuración sea correcta.")
+
+# Confirmar conexión
+#if not robot.ConnectedState():
+ #   raise Exception("El robot no está conectado correctamente. Revisa la conexión.")
+
+#print("Robot conectado correctamente.")
+
+#------------------------------------------------
+# 2) Cargar el Frame (ya existente) donde quieres dibujar
+#    Ajusta el nombre si tu Frame se llama diferente
+#------------------------------------------------
+frame_name = "Frame_from_Target1"
+frame = RDK.Item(frame_name, ITEM_TYPE_FRAME)
+if not frame.Valid():
+    raise Exception(f'No se encontró el Frame "{frame_name}" en la estación.')
+
+# Asignamos este frame al robot
+robot.setPoseFrame(frame)
+# Usamos la herramienta activa
+robot.setPoseTool(robot.PoseTool())
+
+# Ajustes de velocidad y blending
+robot.setSpeed(300)   # mm/s - Ajusta según necesites
+robot.setRounding(5)  # blending (radio de curvatura)
+
+#------------------------------------------------
+# 3) Parámetros de la figura (rosa polar)
+#------------------------------------------------
+num_points = 720       # Cuántos puntos muestreamos (mayor = más suave)
+A = 150               # Amplitud (300 mm = radio máximo)
+k = 5                  # Parámetro de la rosa (pétalos). Si es impar, habrá k pétalos; si es par, 2k
+z_surface = 0          # Z=0 en el plano del frame
+z_safe = 50            # Altura segura para aproximarse y salir
+
+#------------------------------------------------
+# 4) Movimiento al centro en altura segura
+#------------------------------------------------
+# El centro de la rosa (r=0) corresponde a x=0, y=0
+robot.MoveJ(transl(0, 0, z_surface + z_safe))
+
+# Bajamos a la "superficie" (Z=0)
+robot.MoveL(transl(0, 0, z_surface))
+
+#------------------------------------------------
+# 5) Dibujar la Espiral arquimediana
+#    r = A + B theta
+#    limita 𝜃∈[0,4𝜋]θ∈[0,4π] para 2 vueltas
+#------------------------------------------------
+# --- Parámetros de la espiral arquimediana ---
+turns = 3          # número de vueltas (p. ej., 2–4)
+r0    = 10         # radio inicial en mm (evita pasar por el origen)
+pitch = 40         # avance radial por vuelta (mm/vuelta)
+
+# b = crecimiento radial por radian
+b = pitch / (2*math.pi)
+
+# Ángulo total a recorrer
+theta_max = 2*math.pi * turns
+
+# (Opcional) moverse al primer punto de la espiral ya en la superficie:
+theta0 = 0.0
+x0 = (r0 + b*theta0)*math.cos(theta0)
+y0 = (r0 + b*theta0)*math.sin(theta0)
+robot.MoveL(transl(x0, y0, z_surface))
+
+# --- Bucle de trazado de la espiral ---
+for i in range(1, num_points+1):
+    t = i / num_points
+    theta = theta_max * t
+    r = r0 + b * theta
+
+    x = r * math.cos(theta)
+    y = r * math.sin(theta)
+
+    robot.MoveL(transl(x, y, z_surface))# Al terminar, subimos de nuevo para no chocar
+robot.MoveL(transl(x, y, z_surface + z_safe))
+
+#robot.MoveJ(RDK.Item('HOME', ITEM_TYPE_TARGET))
+
+base_x, base_y = -150, 200  # Ahora X hacia el fondo, Y hacia la derecha
+z_surface = 0
+z_safe = 50
+espaciado = 50  # separación entre letras (en X)
+
+def mover_a_seguro(x, y):
+    robot.MoveL(transl(x, y, z_surface + z_safe))
+    robot.MoveL(transl(x, y, z_surface))
+
+def dibujar_E(x0, y0):
+    mover_a_seguro(x0, y0)
+    robot.MoveL(transl(x0, y0 + 50, z_surface))
+    robot.MoveL(transl(x0, y0 + 50, z_surface + z_safe))
+    #levantar()
+    mover_a_seguro(x0, y0 + 50)
+    robot.MoveL(transl(x0 + 25, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 50, z_surface + z_safe))
+    mover_a_seguro(x0, y0 + 25)
+    robot.MoveL(transl(x0 + 15, y0 + 25, z_surface))
+    robot.MoveL(transl(x0 + 15, y0 + 25, z_surface + z_safe))
+    mover_a_seguro(x0, y0)
+    robot.MoveL(transl(x0 + 25, y0, z_surface))
+    robot.MoveL(transl(x0 + 25, y0, z_surface + z_safe))
+   # levantar()
+
+def dibujar_S(x0, y0):
+    mover_a_seguro(x0 + 5, y0 + 50)          # 25-20 = 5
+    robot.MoveL(transl(x0 + 25, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 25, z_surface))
+    robot.MoveL(transl(x0 + 0,  y0 + 25, z_surface))
+    robot.MoveL(transl(x0 + 0,  y0 + 0,  z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 0,  z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 0,  z_surface + z_safe))
+
+    #levantar()
+
+def dibujar_T(x0, y0):
+    mover_a_seguro(x0 + 0,  y0 + 0)          # barra inferior (antes superior)
+    robot.MoveL(transl(x0 + 30, y0 + 0,  z_surface))
+    robot.MoveL(transl(x0 + 30, y0 + 0,  z_surface + z_safe))
+    mover_a_seguro(x0 + 15, y0 + 0)          # columna central invertida
+    robot.MoveL(transl(x0 + 15, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 15, y0 + 50, z_surface + z_safe))
+
+   # levantar()
+
+def dibujar_B(x0, y0):
+    mover_a_seguro(x0, y0)
+    robot.MoveL(transl(x0, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 20, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 45, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 30, z_surface))
+    robot.MoveL(transl(x0 + 20, y0 + 25, z_surface))
+    robot.MoveL(transl(x0, y0 + 25, z_surface))
+    robot.MoveL(transl(x0 + 20, y0 + 25, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 20, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 5, z_surface))
+    robot.MoveL(transl(x0 + 20, y0, z_surface))
+    robot.MoveL(transl(x0, y0, z_surface))
+    robot.MoveL(transl(x0, y0, z_surface + z_safe))
+   # levantar()
+
+def dibujar_A(x0, y0):
+    mover_a_seguro(x0 + 15, y0)
+    robot.MoveL(transl(x0, y0 + 50, z_surface))
+    robot.MoveL(transl(x0, y0 + 50, z_surface + z_safe))
+    robot.MoveL(transl(x0 + 30, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 15, y0, z_surface))
+    robot.MoveL(transl(x0 + 15, y0, z_surface + z_safe))
+   # levantar()
+    mover_a_seguro(x0 + 7, y0 + 25)
+    robot.MoveL(transl(x0 + 22, y0 + 25, z_surface))
+    robot.MoveL(transl(x0 + 22, y0 + 25, z_surface + z_safe))
+    #levantar()
+
+def dibujar_N(x0, y0):
+    mover_a_seguro(x0 + 30, y0)  # Comienza en abajo derecha
+    robot.MoveL(transl(x0 + 30, y0 + 50, z_surface))  # Línea derecha hacia arriba
+    robot.MoveL(transl(x0, y0, z_surface))            # Diagonal hacia abajo izquierda
+    robot.MoveL(transl(x0, y0 + 50, z_surface))       # Línea izquierda hacia arriba
+    robot.MoveL(transl(x0, y0 + 50, z_surface + z_safe))
+
+    #levantar()
+
+dibujar_E(base_x + 0 * espaciado, base_y)
+dibujar_S(base_x + 1 * espaciado, base_y)
+dibujar_T(base_x + 2 * espaciado, base_y)
+dibujar_E(base_x + 3 * espaciado, base_y)
+dibujar_B(base_x + 4 * espaciado, base_y)
+dibujar_A(base_x + 5 * espaciado, base_y)
+dibujar_N(base_x + 6 * espaciado, base_y)
+
+# Nueva línea para DAVID (alineado con la E de ESTEBAN)
+base_y_david = base_y + 90  # 50 mm de alto + 10 mm de margen
+
+def dibujar_D(x0, y0):
+    mover_a_seguro(x0, y0)
+    robot.MoveL(transl(x0, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 20, y0 + 45, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 35, z_surface))
+    robot.MoveL(transl(x0 + 25, y0 + 15, z_surface))
+    robot.MoveL(transl(x0 + 20, y0 + 5, z_surface))
+    robot.MoveL(transl(x0, y0, z_surface))
+    robot.MoveL(transl(x0, y0, z_surface + z_safe))
+   # levantar(x0, y0)
+
+def dibujar_V(x0, y0):
+    mover_a_seguro(x0 + 0, y0)                         # Arranca desde abajo izquierda
+    robot.MoveL(transl(x0 + 15, y0 + 50, z_surface))   # Vértice arriba
+    robot.MoveL(transl(x0 + 30, y0, z_surface))        # Termina en abajo derecha
+    robot.MoveL(transl(x0 + 30, y0, z_surface + z_safe))
+
+
+def dibujar_I(x0, y0):
+    mover_a_seguro(x0 + 15, y0)
+    robot.MoveL(transl(x0 + 15, y0 + 50, z_surface))
+    robot.MoveL(transl(x0 + 15, y0 + 50, z_surface + z_safe))
+   # levantar(x0 + 15, y0 + 50)
+
+# Ejecutar DAVID justo debajo
+dibujar_D(base_x + 0 * espaciado, base_y_david)
+dibujar_A(base_x + 1 * espaciado, base_y_david)
+dibujar_V(base_x + 2 * espaciado, base_y_david)
+dibujar_I(base_x + 3 * espaciado, base_y_david)
+dibujar_D(base_x + 4 * espaciado, base_y_david)
+
+
+print(f"¡Figura (rosa polar) completada en el frame '{frame_name}'!")
+
 
