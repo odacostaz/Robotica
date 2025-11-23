@@ -235,4 +235,23 @@ RobotStudio es el entorno oficial de ABB para sus manipuladores. Su gran fortale
 
 
 
-
+### Diagrama de flujo de la rutina de movimiento de huevos con patron de caballo de ajedrez.
+```mermaid
+flowchart TD
+A[Inicio] --> B[Ir a posición Home segura]
+B --> C[Inicializar rutas de caballo<br/>para Huevo 1 (H1) y Huevo 2 (H2)]
+C --> D[Definir idx = 1<br/>y WHICH = H1]
+D --> E{¿Quedan posiciones<br/>en la ruta?}
+E -->|No| Z[Ir a Home y finalizar rutina]
+E -->|Sí| F[Seleccionar huevo a mover<br/>(H1 si WHICH=H1,<br/>H2 si WHICH=H2)]
+F --> G[Obtener ORIGEN y DESTINO<br/>desde la ruta correspondiente<br/>(RutaInvH1 o RutaInvH2)]
+G --> H[Ir a posición segura<br/>sobre ORIGEN]
+H --> I[Bajar al casillero ORIGEN<br/>y activar vacío<br/>(tomar huevo)]
+I --> J[Subir a altura segura]
+J --> K[Ir a posición segura<br/>sobre DESTINO]
+K --> L[Bajar al casillero DESTINO<br/>y desactivar vacío<br/>(soltar huevo)]
+L --> M[Subir a altura segura]
+M --> N[Incrementar idx<br/>(idx = idx + 1)]
+N --> O[Alternar WHICH<br/>(si era H1 pasa a H2,<br/>si era H2 pasa a H1)]
+O --> E
+```
