@@ -236,6 +236,7 @@ RobotStudio es el entorno oficial de ABB para sus manipuladores. Su gran fortale
 
 
 ### Diagrama de flujo de la rutina de movimiento de huevos con patron de caballo de ajedrez.
+
 ```mermaid
 flowchart TD
 A[Inicio] --> B[Ir a posición Home segura]
