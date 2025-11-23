@@ -256,3 +256,17 @@ flowchart TD
   N --> O[Alternar WHICH entre H1 y H2]
   O --> E
 ```
+
+
+## Código en EPSON RC+ 7.0
+
+El código realizado en RoboDK para el desarrollo de la actividad se puede encontrar dentro del archivo llamado *"Codigo EPSON RC+ 7.0"*.
+
+## Videos explicativos
+
+
+-Simulación del código:  [aquí](https://youtu.be/Ep5VuH0i6ww?si=7msrXnyZ_2vmzK8G )
+
+
+
+
