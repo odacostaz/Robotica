@@ -1,0 +1,188 @@
+' =========================
+'   Laboratorio 3 - Caballo
+'   EPSON RC+ (SPEL+)
+' =========================
+
+Global Integer i
+Global Integer RutaInvH1(30)
+Global Integer RutaInvH2(30)
+
+Global Integer Zsafe
+Global Integer Zapr
+Global Integer Zp
+
+Global Integer PitchX
+Global Integer PitchY
+
+Global Integer IDX
+Global Integer WHICH
+Global Integer O
+Global Integer D
+
+Global Integer VAC_PICK
+Global Integer VAC_PLACE
+Global Integer VAC_STATE
+
+
+Function Init
+
+    ' ===== Rutas H1 =====
+    RutaInvH1(1) = 1
+    RutaInvH1(2) = 9
+    RutaInvH1(3) = 5
+    RutaInvH1(4) = 18
+    RutaInvH1(5) = 29
+    RutaInvH1(6) = 21
+    RutaInvH1(7) = 25
+    RutaInvH1(8) = 14
+    RutaInvH1(9) = 27
+    RutaInvH1(10) = 23
+    RutaInvH1(11) = 12
+    RutaInvH1(12) = 16
+    RutaInvH1(13) = 20
+    RutaInvH1(14) = 7
+    RutaInvH1(15) = 3
+    RutaInvH1(16) = 11
+    RutaInvH1(17) = 24
+    RutaInvH1(18) = 28
+    RutaInvH1(19) = 15
+    RutaInvH1(20) = 19
+    RutaInvH1(21) = 8
+    RutaInvH1(22) = 4
+    RutaInvH1(23) = 17
+    RutaInvH1(24) = 6
+    RutaInvH1(25) = 10
+    RutaInvH1(26) = 2
+    RutaInvH1(27) = 13
+    RutaInvH1(28) = 26
+    RutaInvH1(29) = 22
+    RutaInvH1(30) = 30
+
+    ' ===== Rutas H2 =====
+    RutaInvH2(1) = 30
+    RutaInvH2(2) = 22
+    RutaInvH2(3) = 26
+    RutaInvH2(4) = 13
+    RutaInvH2(5) = 2
+    RutaInvH2(6) = 10
+    RutaInvH2(7) = 6
+    RutaInvH2(8) = 17
+    RutaInvH2(9) = 4
+    RutaInvH2(10) = 8
+    RutaInvH2(11) = 19
+    RutaInvH2(12) = 15
+    RutaInvH2(13) = 11
+    RutaInvH2(14) = 24
+    RutaInvH2(15) = 28
+    RutaInvH2(16) = 20
+    RutaInvH2(17) = 7
+    RutaInvH2(18) = 3
+    RutaInvH2(19) = 16
+    RutaInvH2(20) = 12
+    RutaInvH2(21) = 23
+    RutaInvH2(22) = 27
+    RutaInvH2(23) = 14
+    RutaInvH2(24) = 25
+    RutaInvH2(25) = 21
+    RutaInvH2(26) = 29
+    RutaInvH2(27) = 18
+    RutaInvH2(28) = 5
+    RutaInvH2(29) = 9
+    RutaInvH2(30) = 1
+
+    ' ===== Alturas =====
+    Zsafe = -80
+    Zapr = -110
+    Zp = -120
+
+    ' ===== Pitch de la cubeta (mm) =====
+    PitchX = 45
+    PitchY = 45
+
+
+    VAC_PICK = 0   ' Off en pick
+    VAC_PLACE = 1   ' On en place
+
+Fend
+
+
+Function SetVac
+ '   If VAC_STATE = 1 Then
+  '      On Out_9
+   ' Else
+    '    Off Out_9
+   ' EndIf
+Fend
+
+
+Function MoverHuevo
+
+    If WHICH = 1 Then
+        O = RutaInvH1(IDX)
+        D = RutaInvH1(IDX + 1)
+    Else
+        O = RutaInvH2(IDX)
+        D = RutaInvH2(IDX + 1)
+    EndIf
+
+
+    Jump Pallet(1, O) :Z(Zsafe)   ' viajar alto
+
+    Move Pallet(1, O) :Z(Zp)      ' bajar recto a huevo
+
+    VAC_STATE = VAC_PICK
+    Call SetVac
+    Wait 0.1
+
+    Move Pallet(1, O) :Z(Zsafe)  ' subir recto
+
+
+    Jump Pallet(1, D) :Z(Zsafe)  ' viajar alto
+
+    Move Pallet(1, D) :Z(Zp)     ' bajar recto a dejar huevo
+
+    VAC_STATE = VAC_PLACE
+    Call SetVac
+    Wait 0.1
+
+    Move Pallet(1, D) :Z(Zsafe)  ' subir recto
+
+Fend
+
+
+
+Function PaletizadoCaballo
+    For i = 1 To 29
+
+        IDX = i
+        WHICH = 1
+        Call MoverHuevo
+
+        IDX = i
+        WHICH = 2
+        Call MoverHuevo
+
+    Next
+Fend
+
+
+Function main
+
+    Call Init
+
+    Motor On
+    Power High
+    Accel 100, 100
+    Speed 100
+    Home
+
+
+	Pallet 1, Origen, PuntoX, PuntoY, 6, 5
+
+
+  '  On Out_9
+
+    Call PaletizadoCaballo
+
+    Home
+Fend
