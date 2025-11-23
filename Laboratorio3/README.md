@@ -145,4 +145,92 @@ Con el modo World activo, los pulsadores de JOG se agrupan por ejes cartesianos:
    - **X+ / X−**: desplazan el efector final en la dirección del eje X (adelante/atrás respe
 
 
+### Niveles de velocidad para movimientos manuales en EPSON RC+ 7.0
+
+En el laboratorio, la velocidad de los movimientos manuales (JOG) del EPSON T3-401S se controla principalmente desde el **Administrador de robot → Panel de control**, usando los botones de **POWER LOW** y **POWER HIGH**.
+
+En la parte superior de esa ventana, en el recuadro **Estado**, aparece el indicador:
+
+- `Potencia: BAJA`  → robot en modo de **velocidad baja**
+- `Potencia: ALTA`  → robot en modo de **velocidad alta**
+
+Estos niveles afectan la velocidad con la que se mueve el robot cuando se usan los comandos de JOG en la pestaña **“Mover y enseñar”**.
+
+---
+
+#### 1. Niveles de velocidad: POWER LOW vs POWER HIGH
+
+En el cuadro Energía se tienen dos botones:
+
+- **POWER LOW**  
+  - Activa una **potencia/velocidad baja** para los movimientos manuales.  
+  - Los desplazamientos son más lentos y suaves.  
+  - Es el modo recomendado cuando el robot está cerca de la **cubeta de huevos**, del gripper o de cualquier obstáculo.
+
+- **POWER HIGH**  
+  - Activa una **potencia/velocidad alta**.  
+  - El robot se mueve mucho más rápido al usar JOG.  
+  - Se usa solo para desplazamientos largos en zonas despejadas.
+
+Cuando seleccionas uno de estos botones, el texto de la parte superior cambia, por ejemplo, a `Potencia: BAJA` o `Potencia: ALTA`, indicando claramente qué nivel está activo.
+![her1](Imagenes/pendal.jpg)
+---
+
+#### 2. Proceso para cambiar entre niveles de velocidad
+
+1. Abrir EPSON RC+ 7.0 y entrar al Administrador de robot.
+2. En el menú lateral izquierdo, seleccionar “Panel de control”.
+3. Verificar en el recuadro Motores que el robot está encendido:
+   - Botón MOTOR ON en verde.
+   - En el recuadro de Estado debe aparecer `Motores: ACTIVADOS`.
+4. En el recuadro Energía:
+   - Pulsar **POWER LOW** para trabajar con velocidad baja.  
+   - Pulsar **POWER HIGH** para trabajar con velocidad alta.
+5. Confirmar el cambio revisando el texto en la parte superior:
+   - `Potencia: BAJA`  → estás en modo lento.
+   - `Potencia: ALTA`  → estás en modo rápido.
+
+A partir de ese momento, al ir a “Mover y enseñar” y usar los botones de JOG, el robot se moverá con la velocidad correspondiente al nivel de potencia seleccionado.
+
+---
+
+#### 3. Relación con los movimientos manuales (JOG)
+
+- La selección POWER LOW / POWER HIGH afecta tanto:
+  - los movimientos por articulaciones (Joint), como  
+  - los movimientos en modo cartesiano (World) en X, Y, Z y rotación alrededor de Z.
+- No se introduce un valor numérico de porcentaje: el operador elige entre dos modos bien diferenciados de velocidad (baja o alta), que ya están limitados por los parámetros de seguridad del robot.
+
+---
+
+### Funcionalidades principales de EPSON RC+ 7.0 y comunicación con el manipulador
+
+EPSON RC+ 7.0 es el entorno de desarrollo y supervisión para los robots EPSON. Desde este software se gestiona el proyecto del laboratorio: se configura el robot T3-401S, se crean y editan programas en SPEL+, se mueven y enseñan puntos al manipulador y se supervisa el estado del sistema mientras se ejecutan trayectorias.
+
+A nivel de proyecto, EPSON RC+ permite definir el tipo de robot, las herramientas, las entradas y salidas y los programas asociados. Toda esta información se guarda en un proyecto que puede abrirse en cualquier momento para reproducir exactamente la misma configuración del laboratorio.
+
+El Administrador de robot es el centro de control. En la pestaña de Panel de control se encienden y apagan los motores (MOTOR ON/OFF), se selecciona la potencia de trabajo (POWER LOW / POWER HIGH) y se visualiza el estado general: parada de emergencia, protección y nivel de potencia. Desde allí se puede enviar el robot a Home y liberar o bloquear articulaciones. En la pestaña Mover y enseñar se realizan los movimientos manuales (JOG), tanto por articulaciones como en coordenadas cartesianas, y se registran puntos de trabajo que luego se usarán en los programas.
+
+La programación se realiza en el lenguaje **SPEL+**, dentro del editor de EPSON RC+. El usuario escribe secuencias de instrucciones que incluyen movimientos (`MOVE` a puntos enseñados), cambios de velocidad, manejo de entradas y salidas, bucles, condiciones y llamadas a subrutinas. Los programas se organizan en tareas, lo que permite separar, por ejemplo, la lógica principal del ciclo de trabajo de rutinas específicas para el gripper o para verificación de sensores. El entorno también ofrece herramientas de compilación, ejecución y depuración, de modo que es posible arrancar, pausar, detener o avanzar paso a paso por el código.
+
+Otro bloque importante es la enseñanza y gestión de puntos. Con el modo JOG el operador lleva el robot a posiciones de interés (Home, puntos de recogida, puntos de deposición, posiciones de seguridad) y las guarda como P1, P2, etc. Estos puntos pueden verse y editarse numéricamente en coordenadas cartesianas o articulares, y luego se referencian directamente en el programa en SPEL+. De esta manera, el código describe la lógica del movimiento y los puntos almacenan la información geométrica.
+
+EPSON RC+ también incorpora visualización y diagnóstico. El modelo 3D del robot permite seguir la postura del manipulador y revisar trayectorias antes de ejecutarlas en el equipo real. Al mismo tiempo, el software muestra estados de entradas y salidas, alarmas activas, mensajes de error y eventos relevantes (paradas de emergencia, sobrecargas, límites alcanzados), lo que facilita el análisis de fallas y la recuperación a un estado seguro.
+
+En cuanto a la comunicación con el manipulador, EPSON RC+ se ejecuta en el PC y se conecta al controlador del robot (integrado en la base del T3-401S) normalmente a través de Ethernet. Por este canal el software envía programas, configuraciones y órdenes de ejecución (por ejemplo, RUN, STOP o RESET), y recibe en tiempo real la información de estado: posición actual, errores, estado de motores, valores de E/S, entre otros. El controlador, a su vez, es quien se encarga del control en tiempo real de los motores: lee encoders, genera perfiles de velocidad y aceleración, respeta límites articulares y traduce los comandos de alto nivel en referencias para cada articulación. El manipulador físico ejecuta el movimiento y devuelve su posición al controlador, que finalmente la reporta a EPSON RC+.
+
+El proceso para ejecutar movimientos comienza al abrir el proyecto y conectarse al robot. Desde el Administrador de robot se activan los motores y se selecciona el nivel de potencia. Luego, usando *Mover y enseñar*, se definen y almacenan los puntos necesarios. Con esos puntos disponibles se escribe el programa en SPEL+, se compila y se asigna al controlador. Al pulsar RUN, el controlador interpreta el código, calcula las trayectorias y coordina el movimiento del robot con la activación del gripper y demás periféricos. Mientras tanto, EPSON RC+ muestra la línea de programa que se está ejecutando, la postura del robot y el estado de las señales, de modo que el operador puede supervisar todo el ciclo y reaccionar ante cualquier alarma o condición anómala.
+
+
+
+### Análisis comparativo: EPSON RC+ 7.0, RoboDK y RobotStudio
+
+EPSON RC+ 7.0 es un entorno muy integrado con los robots EPSON. Su principal ventaja es que permite configurar el controlador, programar en SPEL+, mover el robot y gestionar E/S en una misma interfaz, con el mismo “lenguaje” que usa el manipulador real. La limitación es que solo sirve para robots de la marca EPSON y no está pensado como plataforma genérica de simulación.
+
+RoboDK es una herramienta de simulación y programación offline independiente del fabricante. Permite trabajar con modelos de muchas marcas, generar trayectorias complejas, importar geometría CAD y postprocesar código para distintos controladores. Esa versatilidad lo hace ideal para celdas mixtas y para estudiar alternativas de diseño, aunque la comunicación con el robot real depende de postprocesadores y no es tan directa como en los entornos nativos de cada fabricante.
+
+RobotStudio es el entorno oficial de ABB para sus manipuladores. Su gran fortaleza es el uso del “virtual controller”, que reproduce casi exactamente el comportamiento del controlador real y permite desarrollar, verificar y depurar programas RAPID con mucha fidelidad antes de pasarlos al robot físico. Su principal limitación es que solo aplica a robots ABB, pero dentro de ese ecosistema ofrece herramientas muy potentes para estudiar trayectorias, zonas de trabajo y celdas completas de automatización.
+
+
+
 
