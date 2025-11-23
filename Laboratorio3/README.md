@@ -174,8 +174,8 @@ En el cuadro Energía se tienen dos botones:
 
 Cuando seleccionas uno de estos botones, el texto de la parte superior cambia, por ejemplo, a `Potencia: BAJA` o `Potencia: ALTA`, indicando claramente qué nivel está activo.
 
-
 ![her1](Imagenes/pendal.jpg)
+
 ---
 
 #### 2. Proceso para cambiar entre niveles de velocidad
