@@ -57,4 +57,35 @@ Cuando el nodo move_turtle está corriendo, las flechas del teclado permiten mov
 
 Además del movimiento manual, el nodo reconoce varias teclas para dibujar letras de forma automática. Al presionar o, d, a o z se llaman las funciones draw_O, draw_D, draw_A y draw_Z, que usan la función go_to para mover la tortuga entre puntos específicos en el plano de Turtlesim y generar cada letra a partir de segmentos rectos y arcos. En todos los casos la letra se construye tomando como referencia la posición actual de la tortuga, de modo que es posible ir escribiendo el nombre en diferentes zonas de la ventana. Finalmente, la tecla q cierra el nodo y termina la ejecución del laboratorio.
 
+## Diagrama de flujo de la solucion planteada
 
+```mermaid
+flowchart TD
+    A[Iniciar nodo turtle_controller] --> B[Inicializar publisher /turtle1/cmd_vel<br/>y subscriber /turtle1/pose]
+    B --> C[Mostrar instrucciones en la terminal]
+    C --> D{¿Tecla recibida?}
+
+    D -->|No| E[spin_once()<br/>procesar callbacks ROS]
+    E --> D
+
+    D -->|Sí| F{¿Tecla de flecha?}
+
+    F -->|Sí| G[Calcular comando<br/>manual (Twist)]
+    G --> H[Publicar en /turtle1/cmd_vel]
+    H --> E
+
+    F -->|No| I{¿Tecla especial?}
+
+    I -->|Espacio| J[Detener tortuga<br/>(velocidad = 0)]
+    J --> E
+
+    I -->|o / d / a / z| K[Llamar función<br/>draw_O / draw_D / draw_A / draw_Z]
+    K --> L[Definir puntos/segmentos<br/>de la letra]
+    L --> M[Para cada punto:<br/>go_to(x, y)]
+    M --> N[go_to(): leer pose,<br/>calcular error y publicar cmd_vel<br/>hasta llegar al punto]
+    N --> E
+
+    I -->|q| O[Detener tortuga<br/>y cerrar nodo]
+
+
+```
