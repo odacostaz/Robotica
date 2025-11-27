@@ -1,7 +1,6 @@
 # Laboratorio 4 – ROS 2 Humble y Turtlesim
 
-En este laboratorio trabajé con ROS 2 Humble y el simulador Turtlesim para controlar una tortuga desde un nodo en Python. El objetivo principal fue practicar la creación de nodos, la publicación de mensajes de velocidad y la suscripción a la pose, además de usar la consola de Linux y los conceptos básicos de ROS 2 vistos en los tutoriales de Linux, ROS 2 y Turtlesim. :contentReference[oaicite:0]{index=0}
-
+En este laboratorio trabajé con ROS 2 Humble y el simulador Turtlesim para controlar una tortuga desde un nodo en Python. El objetivo principal fue practicar la creación de nodos, la publicación de mensajes de velocidad y la suscripción a la pose, además de usar la consola de Linux y los conceptos básicos de ROS 2 vistos en los tutoriales de Linux, ROS 2 y Turtlesim. 
 ## Objetivos y contexto
 
 El laboratorio busca que podamos:
@@ -13,7 +12,7 @@ En mi caso trabajé con Ubuntu 22.04 en una máquina virtual, ROS 2 Humble insta
 
 ## Desarrollo y procedimiento
 
-Dentro del paquete `my_turtle_controller` edité el archivo `move_turtle.py`. La idea fue que todo el control de la tortuga se hiciera desde este script, sin usar el nodo `turtle_teleop_key`, tal como se pide en el enunciado del laboratorio. :contentReference[oaicite:1]{index=1}
+Dentro del paquete `my_turtle_controller` edité el archivo `move_turtle.py`. La idea fue que todo el control de la tortuga se hiciera desde este script, sin usar el nodo `turtle_teleop_key`, tal como se pide en el enunciado del laboratorio.
 
 Primero implementé la parte de control manual. Para leer el teclado utilicé las funciones de bajo nivel de Python (`termios`, `tty` y `select`) de manera que pudiera capturar las flechas sin necesidad de presionar Enter. Cada flecha se mapea a un comando de velocidad lineal o angular y se publica en el tópico `/turtle1/cmd_vel`. De esta forma puedo avanzar, retroceder y girar izquierda/derecha usando la tortuga de Turtlesim.
 
@@ -43,12 +42,12 @@ Para ejecutar el laboratorio, primero se levanta el simulador de Turtlesim:
 
 ```bash
 ros2 run turtlesim turtlesim_node
-
+cd ~/ros_humble
+colcon build
 
 En otra terminal, dentro del workspace, se compila y se lanza el nodo de control:
 
-cd ~/ros_humble
-colcon build
+
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 run my_turtle_controller move_turtle
@@ -58,4 +57,4 @@ Cuando el nodo move_turtle está corriendo, las flechas del teclado permiten mov
 
 Además del movimiento manual, el nodo reconoce varias teclas para dibujar letras de forma automática. Al presionar o, d, a o z se llaman las funciones draw_O, draw_D, draw_A y draw_Z, que usan la función go_to para mover la tortuga entre puntos específicos en el plano de Turtlesim y generar cada letra a partir de segmentos rectos y arcos. En todos los casos la letra se construye tomando como referencia la posición actual de la tortuga, de modo que es posible ir escribiendo el nombre en diferentes zonas de la ventana. Finalmente, la tecla q cierra el nodo y termina la ejecución del laboratorio.
 
-Con este flujo de trabajo el repositorio queda listo para ser usado como base en futuros ejercicios, ya que combina el uso de la terminal de Linux, los comandos básicos de ROS 2 y la implementación de un nodo en Python que integra suscripción, publicación y control geométrico de la tortuga.
+
