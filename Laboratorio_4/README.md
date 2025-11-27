@@ -89,3 +89,8 @@ flowchart TD
     I -->|q| O["Detener tortuga\ny cerrar nodo"]
 
 ```
+
+## Video explicativo
+
+Para un mayor detalle de la actividad realizada, se puede observar un video de la implementación [aquí](https://youtu.be/ATu_9NeERkY?si=ZDMygOrOGVbdS67t)
+
