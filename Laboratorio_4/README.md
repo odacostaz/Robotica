@@ -86,6 +86,4 @@ flowchart TD
     N --> E
 
     I -->|q| O[Detener tortuga<br/>y cerrar nodo]
-
-
 ```
