@@ -44,14 +44,15 @@ Para ejecutar el laboratorio, primero se levanta el simulador de Turtlesim:
 ros2 run turtlesim turtlesim_node
 cd ~/ros_humble
 colcon build
+```
 
 En otra terminal, dentro del workspace, se compila y se lanza el nodo de control:
 
-
+```bash
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 run my_turtle_controller move_turtle
-
+```
 
 Cuando el nodo move_turtle está corriendo, las flechas del teclado permiten mover la tortuga en modo manual: arriba y abajo controlan la velocidad lineal hacia adelante y hacia atrás, mientras que izquierda y derecha controlan la velocidad angular para girar sobre su propio eje. La barra espaciadora sirve para detener la tortuga en cualquier momento.
 
