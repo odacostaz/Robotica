@@ -1,0 +1,377 @@
+#!/usr/bin/env python3
+# Control de turtlesim con teclado y trazado de letras (O, D, A, Z)
+# Autor: Omar David Acosta Zambrano
+# Laboratorio 4 - Intro a ROS
+
+import sys
+import select
+import termios
+import tty
+import math
+import time
+
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Twist
+from turtlesim.msg import Pose
+
+
+def get_key(old_settings, timeout=0.1):
+    """
+    Lee una tecla sin bloquear la ejecución.
+    Las flechas llegan como secuencias de 3 caracteres (ESC + '[' + letra).
+    """
+    tty.setraw(sys.stdin.fileno())
+    rlist, _, _ = select.select([sys.stdin], [], [], timeout)
+    key = ''
+    if rlist:
+        key = sys.stdin.read(3)
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    return key
+
+
+class TurtleController(Node):
+    """
+    Nodo principal. Controla la tortuga de turtlesim:
+    - Suscripción a /turtle1/pose para conocer la posición.
+    - Publicación en /turtle1/cmd_vel para moverla.
+    - Lógica de teclado y funciones para dibujar letras.
+    """
+
+    def __init__(self):
+        super().__init__('turtle_controller')
+
+        # Publicador de velocidades (Twist) y suscripción a la pose
+        self.cmd_pub = self.create_publisher(Twist, '/turtle1/cmd_vel', 10)
+        self.pose_sub = self.create_subscription(
+            Pose, '/turtle1/pose', self.pose_callback, 10
+        )
+
+        # Pose actual de la tortuga
+        self.x = None
+        self.y = None
+        self.theta = None
+
+        # Velocidades para el modo manual (flechas)
+        self.manual_linear_speed = 2.0
+        self.manual_angular_speed = 2.0
+
+        self.get_logger().info(
+            'Control listo.\n'
+            'Controles:\n'
+            '  Flechas  : movimiento manual\n'
+            '  espacio  : detener\n'
+            '  o / O    : letra O\n'
+            '  d / D    : letra D\n'
+            '  a / A    : letra A\n'
+            '  z / Z    : letra Z\n'
+            '  q        : salir\n'
+        )
+
+    # ---------------------- Callbacks y helpers básicos ----------------------
+
+    def pose_callback(self, msg: Pose):
+        """Guarda la pose actual de la tortuga (callback de /turtle1/pose)."""
+        self.x = msg.x
+        self.y = msg.y
+        self.theta = msg.theta
+
+    def publish_cmd(self, linear_x: float, angular_z: float):
+        """Publica un comando de velocidad en /turtle1/cmd_vel."""
+        msg = Twist()
+        msg.linear.x = float(linear_x)
+        msg.angular.z = float(angular_z)
+        self.cmd_pub.publish(msg)
+
+    def stop(self):
+        """Detiene la tortuga."""
+        self.publish_cmd(0.0, 0.0)
+
+    @staticmethod
+    def normalize_angle(angle: float) -> float:
+        """Normaliza un ángulo al rango [-pi, pi]."""
+        while angle > math.pi:
+            angle -= 2.0 * math.pi
+        while angle < -math.pi:
+            angle += 2.0 * math.pi
+        return angle
+
+    # ---------------------- Control por posición -----------------------------
+
+    def go_to(self, x_goal: float, y_goal: float,
+              max_linear_speed: float = 2.0,
+              angular_gain: float = 4.0,
+              distance_tolerance: float = 0.05):
+        """
+        Lleva la tortuga al punto (x_goal, y_goal) usando realimentación.
+        Estrategia:
+        - Calcula la dirección al objetivo.
+        - Corrige primero el ángulo (control proporcional en yaw).
+        - Avanza cuando el error angular es pequeño.
+        """
+
+        # Asegurar que ya se recibió al menos una pose
+        while rclpy.ok() and (self.x is None or self.y is None or self.theta is None):
+            self.get_logger().warn('Esperando /turtle1/pose...')
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        self.get_logger().info(f'Ir a ({x_goal:.2f}, {y_goal:.2f})')
+
+        rate_hz = 30.0
+        dt = 1.0 / rate_hz
+
+        while rclpy.ok():
+            rclpy.spin_once(self, timeout_sec=0.0)
+
+            dx = x_goal - self.x
+            dy = y_goal - self.y
+            distance = math.sqrt(dx * dx + dy * dy)
+
+            # Cuando ya estamos suficientemente cerca, se detiene
+            if distance < distance_tolerance:
+                self.stop()
+                break
+
+            target_theta = math.atan2(dy, dx)
+            ang_error = self.normalize_angle(target_theta - self.theta)
+
+            angular_z = angular_gain * ang_error
+
+            # Giro casi puro si el error angular es grande
+            if abs(ang_error) > math.radians(15):
+                linear_x = 0.0
+            else:
+                # Cuando el ángulo es razonable, avanza hacia el punto
+                linear_x = max_linear_speed * min(1.0, distance)
+
+            self.publish_cmd(linear_x, angular_z)
+            time.sleep(dt)
+
+        self.stop()
+
+    # ---------------------- Letras (O, D, A, Z) -----------------------------
+
+    def draw_O(self):
+        """
+        Dibuja una O aproximando un círculo con varios puntos.
+        - Centro a la izquierda de la posición actual.
+        - Radio pequeño para no ocupar toda la pantalla.
+        """
+
+        while rclpy.ok() and (self.x is None or self.y is None or self.theta is None):
+            self.get_logger().warn('Esperando pose para O...')
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        radius = 0.7
+        cx = self.x - radius   # centro desplazado a la izquierda
+        cy = self.y
+        num_points = 40
+
+        self.get_logger().info('Dibujando O...')
+
+        for i in range(1, num_points + 1):
+            angle = 2.0 * math.pi * (i / num_points)
+            x = cx + radius * math.cos(angle)
+            y = cy + radius * math.sin(angle)
+            self.go_to(x, y)
+
+        self.stop()
+        self.get_logger().info('O lista.')
+
+    def draw_D(self):
+        """
+        D mayúscula apoyada en la posición actual como esquina inferior izquierda.
+        - Trazo vertical izquierdo.
+        - Arco derecho aproximado con puntos.
+        """
+
+        while rclpy.ok() and (self.x is None or self.y is None or self.theta is None):
+            self.get_logger().warn('Esperando pose para D...')
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        x0 = self.x
+        y0 = self.y
+
+        height = 1.4
+        width = 0.7
+        radius = height / 2.0
+
+        self.get_logger().info('Dibujando D...')
+
+        # Lado izquierdo
+        top_left_y = y0 + height
+        self.go_to(x0, top_left_y)
+
+        # Techo
+        top_right_x = x0 + width
+        self.go_to(top_right_x, top_left_y)
+
+        # Arco derecho (media circunferencia)
+        cx = top_right_x
+        cy = y0 + height / 2.0
+        num_points = 30
+
+        for i in range(num_points + 1):
+            theta = math.pi / 2.0 - i * (math.pi / num_points)
+            x = cx + radius * math.cos(theta)
+            y = cy + radius * math.sin(theta)
+            self.go_to(x, y)
+
+        # Cerrar volviendo a la base izquierda
+        self.go_to(x0, y0)
+
+        self.stop()
+        self.get_logger().info('D lista.')
+
+    def draw_A(self):
+        """
+        A mayúscula iniciando en la esquina inferior izquierda.
+        - Dos diagonales que forman el triángulo.
+        - Barra horizontal central.
+        """
+
+        while rclpy.ok() and (self.x is None or self.y is None or self.theta is None):
+            self.get_logger().warn('Esperando pose para A...')
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        x0 = self.x
+        y0 = self.y
+
+        height = 1.4
+        base_width = 1.4
+        half_width = base_width / 2.0
+
+        bottom_left = (x0, y0)
+        bottom_right = (x0 + base_width, y0)
+        apex = (x0 + half_width, y0 + height)
+        y_bar = y0 + height * 0.5
+
+        # La barra se dibuja un poco hacia adentro para que se vea mejor
+        left_bar_x = bottom_left[0] + base_width * 0.25
+        right_bar_x = bottom_right[0] - base_width * 0.25
+
+        self.get_logger().info('Dibujando A...')
+
+        # Estructura principal de la A
+        self.go_to(apex[0], apex[1])
+        self.go_to(bottom_right[0], bottom_right[1])
+
+        # Barra central
+        self.go_to(right_bar_x, y_bar)
+        self.go_to(left_bar_x, y_bar)
+
+        # Volver a la base izquierda
+        self.go_to(bottom_left[0], bottom_left[1])
+
+        self.stop()
+        self.get_logger().info('A lista.')
+
+    def draw_Z(self):
+        """
+        Z mayúscula empezando en la esquina inferior derecha.
+        - Base inferior horizontal.
+        - Diagonal ascendente hacia la derecha.
+        - Base superior horizontal.
+        """
+
+        while rclpy.ok() and (self.x is None or self.y is None or self.theta is None):
+            self.get_logger().warn('Esperando pose para Z...')
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        height = 1.4
+        base_width = 1.4
+
+        x0 = self.x
+        y0 = self.y
+
+        bottom_right = (x0, y0)
+        bottom_left = (x0 - base_width, y0)
+        top_right = (x0, y0 + height)
+        top_left = (x0 - base_width, y0 + height)
+
+        self.get_logger().info('Dibujando Z...')
+
+        # Base inferior
+        self.go_to(bottom_left[0], bottom_left[1])
+        # Diagonal
+        self.go_to(top_right[0], top_right[1])
+        # Base superior
+        self.go_to(top_left[0], top_left[1])
+
+        self.stop()
+        self.get_logger().info('Z lista.')
+
+
+def main(args=None):
+    """
+    Bucle principal:
+    - Configura el nodo.
+    - Lee el teclado.
+    - Ejecuta movimiento manual o trazado de letras.
+    """
+    rclpy.init(args=args)
+    node = TurtleController()
+
+    old_settings = termios.tcgetattr(sys.stdin)
+
+    try:
+        while rclpy.ok():
+            key = get_key(old_settings, timeout=0.1)
+
+            if not key:
+                # Si no se presiona nada, solo se procesan callbacks de ROS
+                rclpy.spin_once(node, timeout_sec=0.0)
+                continue
+
+            node.get_logger().info(f'Tecla: {repr(key)}')
+
+            if key.startswith('\x1b'):
+                # Secuencia de escape: teclas de flecha
+                if key == '\x1b[A':
+                    node.publish_cmd(node.manual_linear_speed, 0.0)
+                elif key == '\x1b[B':
+                    node.publish_cmd(-node.manual_linear_speed, 0.0)
+                elif key == '\x1b[D':
+                    node.publish_cmd(0.0, node.manual_angular_speed)
+                elif key == '\x1b[C':
+                    node.publish_cmd(0.0, -node.manual_angular_speed)
+
+            else:
+                # Teclas de una sola letra
+                ch = key[0]
+
+                if ch == ' ':
+                    node.stop()
+
+                elif ch in ('o', 'O'):
+                    node.stop()
+                    node.draw_O()
+
+                elif ch in ('d', 'D'):
+                    node.stop()
+                    node.draw_D()
+
+                elif ch in ('a', 'A'):
+                    node.stop()
+                    node.draw_A()
+
+                elif ch in ('z', 'Z'):
+                    node.stop()
+                    node.draw_Z()
+
+                elif ch == 'q':
+                    node.stop()
+                    node.get_logger().info('Saliendo...')
+                    break
+
+            rclpy.spin_once(node, timeout_sec=0.0)
+
+    finally:
+        node.stop()
+        node.destroy_node()
+        rclpy.shutdown()
+        termios.tcsetattr(sys.stdin, TCSADRAIN := termios.TCSADRAIN, old_settings)
+
+
+if __name__ == '__main__':
+    main()
