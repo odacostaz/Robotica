@@ -68,4 +68,5 @@ flowchart TD
     F --> ZC[Salir de la aplicacion]
     ZC --> ZD[Apagar torque cerrar puerto y nodo ROS2]
 
+
 ```
