@@ -20,7 +20,6 @@ Finalmente, la arquitectura del proyecto estÃ¡ pensada para integrarse con un mÃ
 
 ```mermaid
 flowchart TD
-flowchart TD
     A[Inicio aplicacion] --> B[Inicializar nodo ROS2 PincherController]
     B --> C[Configurar comunicacion Dynamixel: puerto y baudrate]
     C --> D[Habilitar torque y velocidad en motores]
@@ -68,6 +67,5 @@ flowchart TD
     %% --- Cierre de aplicacion ---
     F --> ZC[Salir de la aplicacion]
     ZC --> ZD[Apagar torque cerrar puerto y nodo ROS2]
-
 
 ```
