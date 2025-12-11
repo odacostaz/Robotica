@@ -20,56 +20,54 @@ Finalmente, la arquitectura del proyecto está pensada para integrarse con un m�
 
 ```mermaid
 flowchart TD
-    A[Inicio de la aplicación] --> B[Inicializar nodo ROS 2\nPincherController]
-    B --> C[Configurar comunicación Dynamixel\n(puerto, baudrate, IDs)]
-    C --> D[Habilitar torque y velocidad\nen cada motor]
-    D --> E[Inicializar GUI Tkinter\nPincherGUI con pestañas]
+flowchart TD
+    A[Inicio aplicacion] --> B[Inicializar nodo ROS2 PincherController]
+    B --> C[Configurar comunicacion Dynamixel: puerto y baudrate]
+    C --> D[Habilitar torque y velocidad en motores]
+    D --> E[Inicializar GUI Tkinter con pestanas]
 
-    %% Bucle principal de interacción
-    E --> F{Acción del usuario}
+    E --> F{Accion del usuario}
 
     %% --- Control articular por sliders ---
-    F --> G[Control por sliders\n(Pestaña espacio articular)]
-    G --> H[Leer valor del slider\npara cada articulación]
-    H --> I[Enviar posición objetivo\nal motor correspondiente]
-    I --> J[Actualizar posición articular interna]
-    J --> K[Publicar /joint_states]
+    F --> G[Pestana espacio articular por sliders]
+    G --> H[Mover sliders de articulaciones]
+    H --> I[Enviar posiciones a motores]
+    I --> J[Actualizar estados articulares internos]
+    J --> K[Publicar topico joint_states]
     K --> L[RViz actualiza modelo 3D]
 
-    %% --- Ingreso numérico y poses predefinidas ---
-    F --> M[Ingreso numérico y poses\npredefinidas (Pestaña valores)]
-    M --> N[Usuario ingresa valores\no selecciona 1 de las 5 poses]
-    N --> O[Generar secuencia:\nmover una articulación a la vez\ncon pausa de 1 s]
-    O --> P[Enviar posiciones a los motores\nen el orden definido]
-    P --> Q[Actualizar GUI\n(sliders, entradas, estado)]
-    Q --> K
+    %% --- Ingreso numerico y poses predefinidas ---
+    F --> M[Pestana ingreso numerico y poses]
+    M --> N[Usuario ingresa valores o elige una de las 5 poses]
+    N --> O[Generar secuencia: mover una articulacion a la vez con pausa]
+    O --> P[Enviar posiciones a los motores en orden]
+    P --> J
 
     %% --- Control en espacio de la tarea ---
-    F --> R[Control en espacio de la tarea\n(Pestaña TCP)]
-    R --> S[Usuario ajusta sliders\nX, Y, Z, Roll, Pitch, Yaw]
-    S --> T[Calcular cinemática inversa\n(TCP → ángulos articulares)]
-    T --> U[Enviar posiciones articulares\na PincherController]
-    U --> J
+    F --> Q[Pestana espacio de la tarea]
+    Q --> R[Ajustar sliders X Y Z y RPY]
+    R --> S[Calcular cinematica inversa TCP a angulos]
+    S --> I
 
-    %% --- Visualización en RViz ---
-    F --> V[Visualización en RViz\n(Pestaña RViz)]
-    V --> W[Lanzar:\nros2 launch pincher_description display.launch.py]
-    W --> L
+    %% --- Visualizacion en RViz ---
+    F --> T[Pestana visualizacion en RViz]
+    T --> U[Lanzar ros2 launch pincher_description display.launch.py]
+    U --> L
 
-    %% --- Visualización numérica de la pose cartesiana ---
-    F --> X[Visualización numérica TCP\n(Pestaña pose cartesiana)]
-    X --> Y[Tomar ángulos articulares reales]
-    Y --> Z[Calcular cinemática directa\n(X, Y, Z, RPY)]
-    Z --> AA[Actualizar valores numéricos\nen la interfaz]
+    %% --- Visualizacion numerica TCP ---
+    F --> V[Pestana pose cartesiana numerica]
+    V --> W[Tomar angulos articulares actuales]
+    W --> X[Calcular cinematica directa TCP]
+    X --> Y[Mostrar X Y Z y RPY en la interfaz]
 
     %% --- Parada de emergencia ---
-    F --> AB[Parada de emergencia]
-    AB --> AC[Desactivar torque\nde todos los motores]
-    AC --> AD[Detener movimientos\ny mostrar estado de EMERGENCIA]
-    AD --> F
+    F --> Z[Parada de emergencia]
+    Z --> ZA[Desactivar torque en todos los motores]
+    ZA --> ZB[Detener movimientos y mostrar estado de emergencia]
 
-    %% Cierre de la aplicación
-    F --> AE[Cerrar aplicación]
-    AE --> AF[Apagar torque y cerrar puerto\nDestruir nodo ROS 2]
+    %% --- Cierre de aplicacion ---
+    F --> ZC[Salir de la aplicacion]
+    ZC --> ZD[Apagar torque cerrar puerto y nodo ROS2]
+
 
 ```
