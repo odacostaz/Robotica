@@ -1,0 +1,665 @@
+import rclpy
+from rclpy.node import Node
+from dynamixel_sdk import PortHandler, PacketHandler
+import time
+import tkinter as tk
+from tkinter import ttk, messagebox
+import threading
+import subprocess
+import os
+import math
+
+# ============================================================
+#  CONFIGURACIÓN: TIPO DE MOTOR Y PARÁMETROS
+# ============================================================
+USE_XL430 = False  # False = AX-12 (PhantomX kit), True = XL430
+
+if USE_XL430:
+    PROTOCOL_VERSION = 2.0
+    ADDR_TORQUE_ENABLE    = 64
+    ADDR_GOAL_POSITION    = 116
+    ADDR_MOVING_SPEED     = 112
+    ADDR_TORQUE_LIMIT     = 38
+    ADDR_PRESENT_POSITION = 132
+    DEFAULT_GOAL = 2048
+    MAX_SPEED = 4095
+else:
+    PROTOCOL_VERSION = 1.0
+    ADDR_TORQUE_ENABLE    = 24
+    ADDR_GOAL_POSITION    = 30
+    ADDR_MOVING_SPEED     = 32
+    ADDR_TORQUE_LIMIT     = 34
+    ADDR_PRESENT_POSITION = 36
+    DEFAULT_GOAL = 512
+    MAX_SPEED = 1023
+
+# ============================================================
+#  PARÁMETROS GEOMÉTRICOS DEL PHANTOMX (m)
+#  (coherentes con el modelo utilizado en MATLAB)
+# ============================================================
+L1 = 0.069
+L2 = 0.103
+L3 = 0.1033
+L4 = 0.091175
+
+L2_EFF = L2
+L3_EFF = L3 + L4  # Agrupación L3+L4 para IK planar simplificada
+
+# ============================================================
+#  POSES PREDEFINIDAS (offsets en grados respecto a HOME)
+# ============================================================
+PRESET_POSES_DEG = {
+    "Pose 1": [  0,   0,   0,   0,   0],
+    "Pose 2": [ 25,  25,  20, -20,   0],
+    "Pose 3": [-35,  35, -30,  30,   0],
+    "Pose 4": [ 85, -20,  55,  25,   0],
+    "Pose 5": [ 80, -35,  55, -45,   0],
+}
+
+# ============================================================
+#  FUNCIONES AUXILIARES
+# ============================================================
+
+def write_goal_position(packet, port, dxl_id, position):
+    if USE_XL430:
+        return packet.write4ByteTxRx(port, dxl_id, ADDR_GOAL_POSITION, int(position))
+    else:
+        return packet.write2ByteTxRx(port, dxl_id, ADDR_GOAL_POSITION, int(position))
+
+def write_moving_speed(packet, port, dxl_id, speed):
+    if USE_XL430:
+        return packet.write4ByteTxRx(port, dxl_id, ADDR_MOVING_SPEED, int(speed))
+    else:
+        return packet.write2ByteTxRx(port, dxl_id, ADDR_MOVING_SPEED, int(speed))
+
+def read_present_position(packet, port, dxl_id):
+    if USE_XL430:
+        return packet.read4ByteTxRx(port, dxl_id, ADDR_PRESENT_POSITION)
+    else:
+        return packet.read2ByteTxRx(port, dxl_id, ADDR_PRESENT_POSITION)
+
+# ============================================================
+#  CONTROLADOR PRINCIPAL DEL ROBOT
+# ============================================================
+
+class PincherController(Node):
+    def __init__(self):
+        super().__init__('pincher_controller')
+
+        self.declare_parameter('port', '/dev/ttyUSB0')
+        self.declare_parameter('baudrate', 1000000)
+        self.declare_parameter('dxl_ids', [1, 2, 3, 4, 5])
+        self.declare_parameter('goal_positions', [DEFAULT_GOAL] * 5)
+        self.declare_parameter('moving_speed', 100)
+        self.declare_parameter('torque_limit', 800)
+
+        port_name      = self.get_parameter('port').value
+        baudrate       = self.get_parameter('baudrate').value
+        self.dxl_ids   = self.get_parameter('dxl_ids').value
+        goal_positions = self.get_parameter('goal_positions').value
+        moving_speed   = int(self.get_parameter('moving_speed').value)
+        torque_limit   = int(self.get_parameter('torque_limit').value)
+
+        self.port = PortHandler(port_name)
+        if not self.port.openPort():
+            self.get_logger().error(f'No se pudo abrir el puerto {port_name}')
+            rclpy.shutdown()
+            return
+
+        if not self.port.setBaudRate(baudrate):
+            self.get_logger().error(f'No se pudo configurar baudrate={baudrate}')
+            self.port.closePort()
+            rclpy.shutdown()
+            return
+
+        self.packet = PacketHandler(PROTOCOL_VERSION)
+        self.emergency_stop_activated = False
+
+        # Posiciones articulares actuales en radianes (para joint_states / RViz)
+        self.current_joint_positions = [0.0] * len(self.dxl_ids)
+
+        # Nombres de articulaciones (URDF)
+        self.joint_names = ['waist', 'shoulder', 'elbow', 'wrist', 'gripper']
+
+        # Sentido de giro de cada joint (modelo ↔ físico)
+        self.joint_sign = {1: 1, 2: -1, 3: -1, 4: -1, 5: 1}
+
+        self.initialize_motors(goal_positions, moving_speed, torque_limit)
+
+        from sensor_msgs.msg import JointState
+        self.joint_state_pub = self.create_publisher(JointState, '/joint_states', 10)
+        self.joint_state_timer = self.create_timer(0.1, self.publish_joint_states)
+
+    # Conversión ticks ↔ radianes
+    def dxl_to_radians(self, dxl_value):
+        if USE_XL430:
+            center = 2048.0
+        else:
+            center = 512.0
+        scale = 2.618 / center
+        return (dxl_value - center) * scale
+
+    def radians_to_dxl(self, radians):
+        if USE_XL430:
+            center = 2048.0
+        else:
+            center = 512.0
+        inv_scale = center / 2.618
+        return int(radians * inv_scale + center)
+
+    # Inicialización de motores
+    def initialize_motors(self, goal_positions, moving_speed, torque_limit):
+        for dxl_id, goal in zip(self.dxl_ids, goal_positions):
+            try:
+                self.packet.write1ByteTxRx(self.port, dxl_id, ADDR_TORQUE_ENABLE, 1)
+                write_moving_speed(self.packet, self.port, dxl_id, moving_speed)
+                try:
+                    self.packet.write2ByteTxRx(self.port, dxl_id, ADDR_TORQUE_LIMIT, torque_limit)
+                except Exception:
+                    pass
+                write_goal_position(self.packet, self.port, dxl_id, goal)
+            except Exception as e:
+                self.get_logger().error(f'Error configurando motor {dxl_id}: {str(e)}')
+
+    # Publicación de /joint_states
+    def publish_joint_states(self):
+        from sensor_msgs.msg import JointState
+        from std_msgs.msg import Header
+
+        for i, dxl_id in enumerate(self.dxl_ids):
+            try:
+                raw_pos, comm_result, error = read_present_position(self.packet, self.port, dxl_id)
+                if comm_result == 0:
+                    angle = self.dxl_to_radians(raw_pos) * self.joint_sign.get(dxl_id, 1)
+                    self.current_joint_positions[i] = angle
+            except Exception:
+                pass
+
+        msg = JointState()
+        msg.header = Header()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "base_link"
+        msg.name = self.joint_names
+        msg.position = self.current_joint_positions
+        self.joint_state_pub.publish(msg)
+
+    # Movimientos articulares
+    def move_motor(self, motor_id, position_ticks):
+        if self.emergency_stop_activated:
+            return
+        try:
+            write_goal_position(self.packet, self.port, motor_id, position_ticks)
+        except Exception as e:
+            self.get_logger().error(f'Excepción moviendo motor {motor_id}: {str(e)}')
+
+    def move_pose_sequential_deg_offsets(self, offsets_deg, delay=1.0):
+        if len(offsets_deg) != len(self.dxl_ids):
+            self.get_logger().error("La lista de offsets no coincide con el número de motores")
+            return
+        if self.emergency_stop_activated:
+            self.get_logger().warning("No se puede mover: parada de emergencia activada")
+            return
+
+        for dxl_id, off_deg in zip(self.dxl_ids, offsets_deg):
+            rad_offset = off_deg * math.pi / 180.0
+            home_ticks = DEFAULT_GOAL
+            home_rad   = self.dxl_to_radians(home_ticks)
+            new_rad    = home_rad + rad_offset
+            ticks      = self.radians_to_dxl(new_rad)
+            self.move_motor(dxl_id, ticks)
+            time.sleep(delay)
+
+    # IK simplificada de espacio de tarea (posición)
+    def ik_task_space_xyz(self, x, y, z):
+        """
+        IK geométrica simplificada:
+        - q1 controla rotación base (XY)
+        - brazo planar de 2 eslabones en plano (r,z) con L2 y L3+L4
+        - q4 y q5 no se usan en esta aproximación
+        Retorna lista [q1,q2,q3,q4,q5] en radianes o None si no hay solución.
+        """
+        q1 = math.atan2(y, x)
+        r = math.sqrt(x**2 + y**2)
+
+        x_p = r
+        z_p = z - L1
+
+        d = math.sqrt(x_p**2 + z_p**2)
+
+        if d > (L2_EFF + L3_EFF) or d < abs(L2_EFF - L3_EFF):
+            return None
+
+        cos_q3 = (x_p**2 + z_p**2 - L2_EFF**2 - L3_EFF**2) / (2 * L2_EFF * L3_EFF)
+        cos_q3 = max(min(cos_q3, 1.0), -1.0)
+
+        q3 = math.acos(cos_q3)
+        q3 = -q3
+
+        k1 = L2_EFF + L3_EFF * math.cos(q3)
+        k2 = L3_EFF * math.sin(q3)
+        q2 = math.atan2(z_p, x_p) - math.atan2(k2, k1)
+
+        q4 = 0.0
+        q5 = 0.0
+
+        return [q1, q2, q3, q4, q5]
+
+    def move_task_space_xyz(self, x, y, z):
+        if self.emergency_stop_activated:
+            return False
+
+        q = self.ik_task_space_xyz(x, y, z)
+        if q is None:
+            return False
+
+        for i, dxl_id in enumerate(self.dxl_ids):
+            q_rad = q[i]
+            ticks = self.radians_to_dxl(q_rad * self.joint_sign.get(dxl_id, 1))
+            self.move_motor(dxl_id, ticks)
+
+        return True
+
+    # Gestión de HOME y parada de emergencia
+    def home_all_motors(self):
+        if self.emergency_stop_activated:
+            self.reactivate_torque()
+        for dxl_id in self.dxl_ids:
+            self.move_motor(dxl_id, DEFAULT_GOAL)
+
+    def emergency_stop(self):
+        self.emergency_stop_activated = True
+        for dxl_id in self.dxl_ids:
+            try:
+                self.packet.write1ByteTxRx(self.port, dxl_id, ADDR_TORQUE_ENABLE, 0)
+            except Exception:
+                pass
+
+    def reactivate_torque(self):
+        self.emergency_stop_activated = False
+        for dxl_id in self.dxl_ids:
+            try:
+                self.packet.write1ByteTxRx(self.port, dxl_id, ADDR_TORQUE_ENABLE, 1)
+            except Exception:
+                pass
+
+    def close(self):
+        for dxl_id in self.dxl_ids:
+            try:
+                self.packet.write1ByteTxRx(self.port, dxl_id, ADDR_TORQUE_ENABLE, 0)
+            except Exception:
+                pass
+        self.port.closePort()
+
+# ============================================================
+#  INTERFAZ GRÁFICA (HMI)
+# ============================================================
+
+class PincherGUI:
+    def __init__(self, controller: PincherController):
+        self.controller = controller
+        self.window = tk.Tk()
+        self.window.title("PhantomX Pincher X100 - HMI")
+        self.window.geometry("950x720")
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        header = tk.Frame(self.window, bg="#1f3b4d")
+        header.pack(fill="x")
+        tk.Label(header, text="Universidad Nacional de Colombia",
+                 bg="#1f3b4d", fg="white", font=("Arial", 16, "bold")).pack(pady=3)
+        tk.Label(header, text="Robótica - Cinemática Directa - PhantomX Pincher X100",
+                 bg="#1f3b4d", fg="white", font=("Arial", 11)).pack()
+        tk.Label(header, text="Integrante: Omar David Acosta Zambrano",
+                 bg="#1f3b4d", fg="white", font=("Arial", 11, "bold")).pack(pady=4)
+
+        self.notebook = ttk.Notebook(self.window)
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+
+        self.tab1 = ttk.Frame(self.notebook)
+        self.tab2 = ttk.Frame(self.notebook)
+        self.tab3 = ttk.Frame(self.notebook)
+        self.tab4 = ttk.Frame(self.notebook)
+        self.tab5 = ttk.Frame(self.notebook)
+
+        self.notebook.add(self.tab1, text="Espacio articular (sliders)")
+        self.notebook.add(self.tab2, text="Ingreso numérico y poses")
+        self.notebook.add(self.tab3, text="Espacio de la tarea (IK)")
+        self.notebook.add(self.tab4, text="Visualización RViz")
+        self.notebook.add(self.tab5, text="Valores articulares")
+
+        self.rviz_process = None
+
+        self.setup_tab1()
+        self.setup_tab2()
+        self.setup_tab3()
+        self.setup_tab4()
+        self.setup_tab5()
+        self.setup_common_buttons()
+
+    # TAB 1: Espacio articular (sliders)
+    def setup_tab1(self):
+        tk.Label(self.tab1, text="Control en espacio articular mediante sliders",
+                 font=("Arial", 14, "bold")).pack(pady=10)
+
+        frame = tk.Frame(self.tab1)
+        frame.pack(padx=20, pady=10, fill="x")
+
+        self.sliders = {}
+        self.labels  = {}
+
+        for motor_id in self.controller.dxl_ids:
+            sub = tk.Frame(frame)
+            sub.pack(fill="x", pady=4)
+
+            tk.Label(sub, text=f"Motor {motor_id}", font=("Arial", 10, "bold"), width=10)\
+                .pack(side="left")
+
+            slider = tk.Scale(sub, from_=0, to=1023, orient=tk.HORIZONTAL,
+                              length=400, showvalue=True,
+                              command=lambda v, mid=motor_id: self.on_motor_slider_change(mid))
+            slider.set(DEFAULT_GOAL)
+            slider.pack(side="left", padx=10)
+
+            label = tk.Label(sub, text=f"Pos: {DEFAULT_GOAL}", width=12)
+            label.pack(side="left")
+
+            self.sliders[motor_id] = slider
+            self.labels[motor_id]  = label
+
+        speed_frame = tk.LabelFrame(self.tab1, text="Velocidad de movimiento (ticks)",
+                                    font=("Arial", 10, "bold"))
+        speed_frame.pack(fill="x", padx=20, pady=10)
+
+        self.speed_slider_tab1 = tk.Scale(speed_frame, from_=0, to=MAX_SPEED, orient=tk.HORIZONTAL,
+                                          length=400, showvalue=True,
+                                          command=self.on_speed_slider_change)
+        self.speed_slider_tab1.set(100)
+        self.speed_slider_tab1.pack(side="left", padx=10, pady=5)
+
+        self.speed_value_label_tab1 = tk.Label(speed_frame, text="100", width=8)
+        self.speed_value_label_tab1.pack(side="left", padx=10)
+
+        tk.Label(speed_frame, text="Velocidad 0 = no hay movimiento",
+                 fg="gray").pack(side="left", padx=5)
+
+    # TAB 2: Ingreso numérico + poses
+    def setup_tab2(self):
+        tk.Label(self.tab2, text="Ingreso numérico articular y poses predefinidas",
+                 font=("Arial", 14, "bold")).pack(pady=10)
+
+        self.entries      = {}
+        self.entry_labels = {}
+
+        motors_frame = tk.Frame(self.tab2)
+        motors_frame.pack(fill="x", padx=20, pady=5)
+
+        for motor_id in self.controller.dxl_ids:
+            sub = tk.Frame(motors_frame)
+            sub.pack(fill="x", pady=4)
+
+            tk.Label(sub, text=f"Motor {motor_id} (grados):", width=18)\
+                .pack(side="left")
+
+            entry = tk.Entry(sub, width=8)
+            entry.insert(0, "0")
+            entry.pack(side="left")
+
+            btn = tk.Button(sub, text="Mover",
+                            command=lambda mid=motor_id: self.move_single_motor_from_entry(mid))
+            btn.pack(side="left", padx=5)
+
+            lbl = tk.Label(sub, text="Listo", fg="green", width=10)
+            lbl.pack(side="left", padx=5)
+
+            self.entries[motor_id]      = entry
+            self.entry_labels[motor_id] = lbl
+
+        speed_frame = tk.LabelFrame(self.tab2, text="Velocidad de movimiento (ticks)",
+                                    font=("Arial", 10, "bold"))
+        speed_frame.pack(fill="x", padx=20, pady=10)
+
+        self.speed_slider_tab2 = tk.Scale(speed_frame, from_=0, to=MAX_SPEED,
+                                          orient=tk.HORIZONTAL, length=400,
+                                          showvalue=True,
+                                          command=self.on_speed_slider_change)
+        self.speed_slider_tab2.set(100)
+        self.speed_slider_tab2.pack(side="left", padx=10, pady=5)
+
+        self.speed_value_label_tab2 = tk.Label(speed_frame, text="100", width=8)
+        self.speed_value_label_tab2.pack(side="left", padx=10)
+
+        tk.Label(speed_frame, text="Velocidad 0 = no se mueven motores",
+                 fg="gray").pack(side="left", padx=5)
+
+        preset_frame = tk.LabelFrame(self.tab2, text="Poses predefinidas (offsets en grados respecto a HOME)",
+                                     font=("Arial", 10, "bold"))
+        preset_frame.pack(fill="x", padx=20, pady=10)
+
+        for name, offsets_deg in PRESET_POSES_DEG.items():
+            text_btn = f"{name}: {offsets_deg}"
+            tk.Button(preset_frame, text=text_btn,
+                      command=lambda off=offsets_deg: self.move_to_preset_pose(off))\
+                .pack(fill="x", padx=10, pady=2)
+
+    # TAB 3: Espacio de la tarea (IK)
+    def setup_tab3(self):
+        tk.Label(self.tab3, text="Control en el espacio de la tarea (IK simplificada)",
+                 font=("Arial", 14, "bold")).pack(pady=10)
+
+        info = (
+            "Los sliders controlan una referencia de TCP (X, Y, Z) en metros.\n"
+            "Se usa una IK geométrica simplificada para q1, q2 y q3.\n"
+            "q4 y q5 se mantienen en 0 en esta pestaña."
+        )
+        tk.Label(self.tab3, text=info, justify="center").pack(pady=5)
+
+        self.task_sliders = {}
+
+        axes = [
+            ("X (m)",  0.05, 0.25, 0.15),
+            ("Y (m)", -0.20, 0.20, 0.00),
+            ("Z (m)",  0.02, 0.25, 0.10),
+            ("Roll (rad)",  -math.pi/2, math.pi/2, 0.0),
+            ("Pitch (rad)", -math.pi/2, math.pi/2, 0.0),
+            ("Yaw (rad)",   -math.pi,   math.pi,   0.0),
+        ]
+
+        for name, mn, mx, val in axes:
+            f = tk.Frame(self.tab3)
+            f.pack(fill="x", padx=40, pady=3)
+            tk.Label(f, text=name + ":", width=12).pack(side="left")
+            s = tk.Scale(f, from_=mn, to=mx, orient=tk.HORIZONTAL,
+                         resolution=0.01 if "m" in name else 0.05,
+                         length=400, showvalue=True)
+            s.set(val)
+            s.pack(side="left")
+            self.task_sliders[name] = s
+
+        tk.Button(self.tab3, text="Mover TCP (aplicar IK)",
+                  bg="#2196F3", fg="white",
+                  command=self.apply_task_space_ik).pack(pady=10)
+
+    # TAB 4: RViz
+    def setup_tab4(self):
+        tk.Label(self.tab4, text="Visualización del PhantomX en RViz",
+                 font=("Arial", 14, "bold")).pack(pady=10)
+
+        tk.Button(self.tab4, text="LANZAR RViz",
+                  bg="#2196F3", fg="white",
+                  command=self.launch_rviz).pack(pady=5)
+
+        tk.Button(self.tab4, text="DETENER RViz",
+                  bg="#f44336", fg="white",
+                  command=self.stop_rviz).pack(pady=5)
+
+        self.rviz_status_label = tk.Label(self.tab4, text="RViz no iniciado", fg="red")
+        self.rviz_status_label.pack(pady=10)
+
+    # TAB 5: Valores articulares
+    def setup_tab5(self):
+        tk.Label(self.tab5, text="Valores articulares reales (radianes)",
+                 font=("Arial", 14, "bold")).pack(pady=10)
+
+        self.joint_labels = {}
+        for name in self.controller.joint_names:
+            f = tk.Frame(self.tab5)
+            f.pack(fill="x", padx=40, pady=2)
+            tk.Label(f, text=f"{name}:", width=12).pack(side="left")
+            lbl = tk.Label(f, text="0.000", width=10)
+            lbl.pack(side="left")
+            self.joint_labels[name] = lbl
+
+        self.update_joints_timer()
+
+    # Botones comunes
+    def setup_common_buttons(self):
+        f = tk.Frame(self.window)
+        f.pack(fill="x", padx=20, pady=10)
+
+        tk.Button(f, text="HOME", bg="#2196F3", fg="white",
+                  command=self.home_all).pack(side="left", padx=10)
+
+        tk.Button(f, text="PARADA DE EMERGENCIA", bg="#f44336", fg="white",
+                  command=self.emergency_stop).pack(side="right", padx=10)
+
+        self.status_label = tk.Label(f, text="Sistema Listo", fg="green")
+        self.status_label.pack(side="bottom", pady=5)
+
+    # Callbacks
+    def on_motor_slider_change(self, motor_id):
+        pos = self.sliders[motor_id].get()
+        self.controller.move_motor(motor_id, pos)
+        self.labels[motor_id].config(text=f"Pos: {pos}")
+        self.status_label.config(text=f"Motor {motor_id} → {pos}", fg="blue")
+
+    def on_speed_slider_change(self, value):
+        try:
+            speed = int(float(value))
+        except ValueError:
+            return
+
+        for dxl_id in self.controller.dxl_ids:
+            try:
+                write_moving_speed(self.controller.packet, self.controller.port, dxl_id, speed)
+            except Exception:
+                pass
+
+        self.speed_value_label_tab1.config(text=str(speed))
+        self.speed_value_label_tab2.config(text=str(speed))
+        self.speed_slider_tab1.set(speed)
+        self.speed_slider_tab2.set(speed)
+
+        if speed == 0:
+            self.status_label.config(text="Velocidad 0: los motores no se moverán", fg="orange")
+        else:
+            self.status_label.config(text=f"Velocidad actualizada: {speed}", fg="blue")
+
+    def move_single_motor_from_entry(self, motor_id):
+        try:
+            deg = float(self.entries[motor_id].get())
+            rad = deg * math.pi / 180.0
+            ticks = self.controller.radians_to_dxl(rad)
+            self.controller.move_motor(motor_id, ticks)
+            self.entry_labels[motor_id].config(text="Movido", fg="blue")
+            if motor_id in self.sliders:
+                self.sliders[motor_id].set(ticks)
+        except ValueError:
+            self.entry_labels[motor_id].config(text="Error", fg="red")
+
+    def move_to_preset_pose(self, offsets_deg):
+        def worker():
+            self.status_label.config(text="Moviendo a pose predefinida...", fg="blue")
+            self.controller.move_pose_sequential_deg_offsets(offsets_deg, delay=1.0)
+            self.status_label.config(text="Sistema Listo", fg="green")
+        threading.Thread(target=worker, daemon=True).start()
+
+    def apply_task_space_ik(self):
+        x = self.task_sliders["X (m)"].get()
+        y = self.task_sliders["Y (m)"].get()
+        z = self.task_sliders["Z (m)"].get()
+        success = self.controller.move_task_space_xyz(x, y, z)
+        if success:
+            self.status_label.config(
+                text=f"TCP → X={x:.3f}, Y={y:.3f}, Z={z:.3f} (IK aplicada)",
+                fg="blue"
+            )
+        else:
+            self.status_label.config(
+                text="Objetivo fuera de alcance (IK sin solución)",
+                fg="red"
+            )
+
+    def launch_rviz(self):
+        try:
+            cmd = ["ros2", "launch", "pincher_description", "display.launch.py"]
+            self.rviz_process = subprocess.Popen(cmd)
+            self.rviz_status_label.config(text="RViz ejecutándose", fg="green")
+        except Exception as e:
+            messagebox.showerror("Error lanzando RViz", str(e))
+
+    def stop_rviz(self):
+        try:
+            if self.rviz_process:
+                self.rviz_process.terminate()
+                self.rviz_process = None
+                self.rviz_status_label.config(text="RViz detenido", fg="red")
+        except Exception:
+            pass
+
+    def update_joints_timer(self):
+        for i, name in enumerate(self.controller.joint_names):
+            if i < len(self.controller.current_joint_positions):
+                val = self.controller.current_joint_positions[i]
+                self.joint_labels[name].config(text=f"{val:.3f}")
+        self.window.after(100, self.update_joints_timer)
+
+    def home_all(self):
+        self.controller.home_all_motors()
+        for mid in self.controller.dxl_ids:
+            if mid in self.sliders:
+                self.sliders[mid].set(DEFAULT_GOAL)
+                self.labels[mid].config(text=f"Pos: {DEFAULT_GOAL}")
+            if mid in self.entries:
+                self.entries[mid].delete(0, tk.END)
+                self.entries[mid].insert(0, "0")
+                self.entry_labels[mid].config(text="HOME", fg="green")
+        self.status_label.config(text="Todos los motores a HOME", fg="blue")
+
+    def emergency_stop(self):
+        self.controller.emergency_stop()
+        self.status_label.config(text="PARADA DE EMERGENCIA ACTIVADA", fg="red")
+        for lbl in getattr(self, "entry_labels", {}).values():
+            lbl.config(text="EMERGENCIA", fg="red")
+
+    def on_close(self):
+        if self.rviz_process:
+            self.stop_rviz()
+        if messagebox.askokcancel("Salir",
+                                  "¿Seguro que deseas salir? Se desactivará el torque de los motores."):
+            self.controller.close()
+            self.window.destroy()
+            rclpy.shutdown()
+
+    def run(self):
+        self.window.mainloop()
+
+# ============================================================
+#  main()
+# ============================================================
+
+def main(args=None):
+    rclpy.init(args=args)
+    controller = PincherController()
+
+    spin_thread = threading.Thread(target=rclpy.spin, args=(controller,), daemon=True)
+    spin_thread.start()
+
+    try:
+        gui = PincherGUI(controller)
+        gui.run()
+    finally:
+        controller.close()
+        controller.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()
