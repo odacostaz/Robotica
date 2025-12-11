@@ -1,5 +1,4 @@
-.
-##Descripción detallada de la solución planteada
+## Descripción detallada de la solución planteada
 
 La solución propuesta para el Laboratorio No. 05 integra en un mismo proyecto el control del manipulador Phantom X Pincher X100 con servomotores Dynamixel AX-12, el uso de ROS 2 Humble y la visualización en RViz, todo operado desde una interfaz HMI desarrollada en Python.
 
@@ -71,8 +70,8 @@ flowchart TD
 
 ```
 
-##Plano de planta
-![her1](Imagenes/Vistaplanta.png)
+## Plano de planta
+![her1](Imagenes/Vistadeplanta.png)
 
 ## Descripción de las funciones utilizadas
 
