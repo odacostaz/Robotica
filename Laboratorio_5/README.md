@@ -72,6 +72,4 @@ flowchart TD
     F --> AE[Cerrar aplicación]
     AE --> AF[Apagar torque y cerrar puerto<br/>Destruir nodo ROS 2]
 
-
-
 ```
