@@ -70,3 +70,6 @@ flowchart TD
 
 
 ```
+
+##Plano de planta
+![her1](Imagenes/Vistaplanta.png)
