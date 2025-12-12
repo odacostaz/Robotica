@@ -236,3 +236,6 @@ A continuación se describen las funciones y clases más relevantes del código.
 ## Código 
 
 El código realizado en RoboDK para el desarrollo de la actividad se puede encontrar dentro de la carpeta llamada *"Codigo"*.
+
+## Video
+Por cuestiones de tiempo y falta de disponibilidad de los robots para realizar la pracctica no se logro implementar y probar el codigo
